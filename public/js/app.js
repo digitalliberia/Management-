@@ -30,11 +30,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         currentEmployee = { id: userDoc.id, ...userDoc.data() };
         
+        // Check for admin access - includes 'super admin'
         const isAdmin = currentEmployee.role === 'admin' || currentEmployee.role === 'super admin';
+        
+        // Debug logging
+        console.log('Employee role:', currentEmployee.role);
+        console.log('Is admin?', isAdmin);
+        
         document.getElementById('userRole').innerHTML = `<strong>${currentEmployee.position || 'Employee'}</strong><br><small>${currentEmployee.fullName}</small>`;
         
-        if (isAdmin) {
-            document.getElementById('adminMenu').style.display = 'block';
+        // Show admin menu in sidebar
+        const adminMenu = document.getElementById('adminMenu');
+        if (adminMenu) {
+            if (isAdmin) {
+                adminMenu.style.display = 'block';
+                console.log('Admin menu enabled');
+            } else {
+                adminMenu.style.display = 'none';
+            }
+        }
+        
+        // Also show a direct admin button in the navbar area
+        let adminNavBtn = document.getElementById('adminNavBtn');
+        if (!adminNavBtn) {
+            const navbarDiv = document.querySelector('.ms-auto.d-flex');
+            if (navbarDiv && isAdmin) {
+                const btn = document.createElement('button');
+                btn.id = 'adminNavBtn';
+                btn.className = 'btn-glass-primary me-2';
+                btn.innerHTML = '<i class="fas fa-user-shield"></i> Admin';
+                btn.onclick = () => window.location.href = 'admin.html';
+                navbarDiv.insertBefore(btn, navbarDiv.firstChild);
+            }
         }
         
         await loadDashboardData();
@@ -887,7 +914,7 @@ async function loadExpenses() {
         const snapshot = await getDocs(q);
         const container = document.getElementById('expensesList');
         if (!container) return;
-        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>';
+        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody><table></div>';
         const tbody = container.querySelector('tbody');
         
         snapshot.forEach(doc => {
@@ -1325,3 +1352,12 @@ if (typeof Swal === 'undefined') {
     swalScript.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
     document.head.appendChild(swalScript);
 }
+
+// Force show admin menu if role is super admin (fallback)
+setTimeout(() => {
+    if (currentEmployee && (currentEmployee.role === 'super admin' || currentEmployee.role === 'admin')) {
+        const adminMenu = document.getElementById('adminMenu');
+        if (adminMenu) adminMenu.style.display = 'block';
+        console.log('Admin menu force shown for:', currentEmployee.role);
+    }
+}, 1000);
