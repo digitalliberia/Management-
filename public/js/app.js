@@ -30,11 +30,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         currentEmployee = { id: userDoc.id, ...userDoc.data() };
         
-        // Check for admin access - includes 'super admin'
-        const isAdmin = currentEmployee.role === 'admin' || currentEmployee.role === 'super admin';
+        // FIX: Handle field name with space (role )
+        const userRole = currentEmployee['role '] || currentEmployee.role || 'employee';
         
-        // Debug logging
-        console.log('Employee role:', currentEmployee.role);
+        const isAdmin = userRole === 'admin' || userRole === 'super admin';
+        
+        console.log('Employee role:', userRole);
         console.log('Is admin?', isAdmin);
         
         document.getElementById('userRole').innerHTML = `<strong>${currentEmployee.position || 'Employee'}</strong><br><small>${currentEmployee.fullName}</small>`;
@@ -42,23 +43,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Show admin menu in sidebar
         const adminMenu = document.getElementById('adminMenu');
         if (adminMenu) {
-            if (isAdmin) {
-                adminMenu.style.display = 'block';
-                console.log('Admin menu enabled in sidebar');
-            } else {
-                adminMenu.style.display = 'none';
-            }
+            adminMenu.style.display = isAdmin ? 'block' : 'none';
         }
         
         // Show the admin button in navbar
         const adminNavBtn = document.getElementById('adminNavBtn');
         if (adminNavBtn) {
-            if (isAdmin) {
-                adminNavBtn.style.display = 'inline-block';
-                console.log('Admin button enabled in navbar');
-            } else {
-                adminNavBtn.style.display = 'none';
-            }
+            adminNavBtn.style.display = isAdmin ? 'inline-block' : 'none';
         }
         
         await loadDashboardData();
@@ -836,7 +827,7 @@ async function loadExpenses() {
         const snapshot = await getDocs(q);
         const container = document.getElementById('expensesList');
         if (!container) return;
-        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></table></thead><tbody></tbody></table></div>';
+        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></td></div>';
         const tbody = container.querySelector('tbody');
         
         snapshot.forEach(doc => {
@@ -1284,7 +1275,224 @@ function showReviewForm(employeeId) {
             return true;
         }
     }).then(() => { loadPerformanceReviews(); });
+};
+
+// ===== ADMIN FUNCTIONS =====
+window.showAdminEmployees = function() {
+    loadEmployees();
+    document.getElementById('adminContent').innerHTML = `
+        <div class="glass-card-inner">
+            <div class="card-header-glass">Employee Management</div>
+            <div class="table-responsive">
+                <table class="glass-table" id="employeesTable">
+                    <thead><tr><th>Name</th><th>DSSN</th><th>Department</th><th>Position</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="employeesTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    loadEmployeesTable();
+};
+
+window.showAdminReports = function() {
+    document.getElementById('adminContent').innerHTML = `
+        <div class="glass-card-inner">
+            <div class="card-header-glass">Attendance Reports</div>
+            <div class="row p-3">
+                <div class="col-md-4"><label>Start Date</label><input type="date" id="reportStart" class="glass-input"></div>
+                <div class="col-md-4"><label>End Date</label><input type="date" id="reportEnd" class="glass-input"></div>
+                <div class="col-md-4"><label>&nbsp;</label><button class="btn-glass-primary w-100" onclick="generateReport()">Generate Report</button></div>
+            </div>
+            <div id="reportResults" class="p-3"></div>
+        </div>
+    `;
+};
+
+window.showAdminPayroll = function() {
+    document.getElementById('adminContent').innerHTML = `
+        <div class="glass-card-inner">
+            <div class="card-header-glass">Payroll Management</div>
+            <div class="row p-3">
+                <div class="col-md-6"><label>Month</label><input type="month" id="payrollMonth" class="glass-input"></div>
+                <div class="col-md-6"><label>&nbsp;</label><button class="btn-glass-primary w-100" onclick="calculatePayroll()">Calculate Payroll</button></div>
+            </div>
+            <div id="payrollResults" class="p-3"></div>
+        </div>
+    `;
+};
+
+window.showAdminAnnouncement = function() {
+    document.getElementById('adminContent').innerHTML = `
+        <div class="glass-card-inner">
+            <div class="card-header-glass">Post Announcement</div>
+            <div class="p-3">
+                <div class="mb-3"><label>Title</label><input type="text" id="announceTitle" class="glass-input"></div>
+                <div class="mb-3"><label>Priority</label><select id="announcePriority" class="glass-input"><option>Normal</option><option>High</option><option>Urgent</option></select></div>
+                <div class="mb-3"><label>Message</label><textarea id="announceMessage" rows="4" class="glass-input"></textarea></div>
+                <button class="btn-glass-primary" onclick="postAdminAnnouncement()">Post Announcement</button>
+            </div>
+        </div>
+    `;
+};
+
+window.postAdminAnnouncement = async function() {
+    const title = document.getElementById('announceTitle').value;
+    const priority = document.getElementById('announcePriority').value;
+    const message = document.getElementById('announceMessage').value;
+    
+    if (!title || !message) {
+        Swal.fire({ title: 'Error', text: 'Please fill all fields', icon: 'error', background: '#000' });
+        return;
+    }
+    
+    await addDoc(collection(db, 'announcements'), {
+        title: title,
+        priority: priority,
+        message: message,
+        authorId: currentEmployee.id,
+        authorName: currentEmployee.fullName,
+        authorPosition: currentEmployee.position,
+        readBy: [],
+        createdAt: Timestamp.now()
+    });
+    
+    Swal.fire({ title: 'Success', text: 'Announcement posted', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+    document.getElementById('announceTitle').value = '';
+    document.getElementById('announceMessage').value = '';
+    loadAnnouncements();
+};
+
+async function loadEmployeesTable() {
+    const snapshot = await getDocs(collection(db, 'employees'));
+    const tbody = document.getElementById('employeesTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    snapshot.forEach(doc => {
+        const emp = doc.data();
+        tbody.innerHTML += `
+            <tr>
+                <td>${emp.fullName}</td>
+                <td>${emp.dssn}</td>
+                <td>${emp.department || '-'}</td>
+                <td>${emp.position || '-'}</td>
+                <td><span class="status-badge status-present">${emp.status || 'Active'}</span></td>
+                <td><button class="btn-glass-sm" onclick="deleteEmployee('${doc.id}')">Delete</button></td>
+            </tr>
+        `;
+    });
 }
+
+window.deleteEmployee = async function(employeeId) {
+    const result = await Swal.fire({
+        title: 'Confirm Delete',
+        text: 'Are you sure you want to delete this employee?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete',
+        background: '#000'
+    });
+    
+    if (result.isConfirmed) {
+        await deleteDoc(doc(db, 'employees', employeeId));
+        Swal.fire({ title: 'Deleted', text: 'Employee deleted', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+        loadEmployeesTable();
+    }
+};
+
+window.generateReport = async function() {
+    const startDate = document.getElementById('reportStart').value;
+    const endDate = document.getElementById('reportEnd').value;
+    
+    if (!startDate || !endDate) {
+        Swal.fire({ title: 'Error', text: 'Please select date range', icon: 'error', background: '#000' });
+        return;
+    }
+    
+    const snapshot = await getDocs(collection(db, 'attendance'));
+    const reportData = [];
+    
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.date >= startDate && data.date <= endDate) {
+            reportData.push(data);
+        }
+    });
+    
+    const employeeSummary = {};
+    reportData.forEach(record => {
+        if (!employeeSummary[record.employeeName]) {
+            employeeSummary[record.employeeName] = { name: record.employeeName, present: 0, hours: 0 };
+        }
+        employeeSummary[record.employeeName].present++;
+        if (record.checkIn && record.checkOut) {
+            const hours = (record.checkOut.toDate() - record.checkIn.toDate()) / (1000 * 60 * 60);
+            employeeSummary[record.employeeName].hours += hours;
+        }
+    });
+    
+    const resultsDiv = document.getElementById('reportResults');
+    resultsDiv.innerHTML = `
+        <div class="table-responsive mt-3">
+            <table class="glass-table">
+                <thead><tr><th>Employee</th><th>Days Present</th><th>Total Hours</th></tr></thead>
+                <tbody>
+                    ${Object.values(employeeSummary).map(emp => `<tr><td>${emp.name}</td><td>${emp.present}</td><td>${emp.hours.toFixed(1)} hrs</td></tr>`).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+};
+
+window.calculatePayroll = async function() {
+    const month = document.getElementById('payrollMonth').value;
+    if (!month) {
+        Swal.fire({ title: 'Error', text: 'Please select month', icon: 'error', background: '#000' });
+        return;
+    }
+    
+    const [year, monthNum] = month.split('-');
+    const startDate = `${year}-${monthNum}-01`;
+    const lastDay = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
+    const endDate = `${year}-${monthNum}-${lastDay}`;
+    
+    const attendanceSnapshot = await getDocs(collection(db, 'attendance'));
+    const employeesSnapshot = await getDocs(collection(db, 'employees'));
+    
+    const employees = {};
+    employeesSnapshot.forEach(doc => { employees[doc.id] = { id: doc.id, ...doc.data() }; });
+    
+    const payroll = [];
+    for (const emp of Object.values(employees)) {
+        let totalHours = 0;
+        attendanceSnapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.employeeId === emp.id && data.date >= startDate && data.date <= endDate && data.checkIn && data.checkOut) {
+                totalHours += (data.checkOut.toDate() - data.checkIn.toDate()) / (1000 * 60 * 60);
+            }
+        });
+        
+        const dailyRate = (emp.salary || 0) / 22;
+        const hourlyRate = dailyRate / 8;
+        const amount = totalHours * hourlyRate;
+        
+        payroll.push({ name: emp.fullName, position: emp.position, hours: totalHours.toFixed(1), salary: emp.salary || 0, amount: amount.toFixed(2) });
+    }
+    
+    const resultsDiv = document.getElementById('payrollResults');
+    resultsDiv.innerHTML = `
+        <div class="table-responsive mt-3">
+            <table class="glass-table">
+                <thead><tr><th>Employee</th><th>Position</th><th>Hours Worked</th><th>Monthly Salary</th><th>Pro-rated Amount</th></tr></thead>
+                <tbody>
+                    ${payroll.map(p => `<tr><td>${p.name}</td><td>${p.position}</td><td>${p.hours}</td><td>$${p.salary}</td><td>$${p.amount}</td></tr>`).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+};
 
 window.showSection = function(section) {
     const sections = ['dashboard', 'attendance', 'appointments', 'tasks', 'leave', 'expenses', 'documents', 'performance', 'announcements', 'admin'];
