@@ -7,7 +7,7 @@ let canvas = null;
 let ctx = null;
 let calendar = null;
 
-// Check if user is logged in on page load
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
     updateDateTime();
     setInterval(updateDateTime, 1000);
@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         currentEmployee = JSON.parse(userJson);
         
-        // Verify user still exists and password is valid
         const userDoc = await getDoc(doc(db, 'employees', currentEmployee.id));
         if (!userDoc.exists()) {
             localStorage.removeItem('currentUser');
@@ -50,12 +49,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         initSignaturePad();
         updateAttendanceButton();
+        
+        // Setup real-time listeners
+        setupRealtimeListeners();
+        
     } catch (error) {
         console.error('Error loading user:', error);
         localStorage.removeItem('currentUser');
         showLoginModal();
     }
 });
+
+function setupRealtimeListeners() {
+    // Listen for new tasks
+    const tasksQuery = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'));
+    const unsubscribeTasks = onSnapshot(tasksQuery, (snapshot) => {
+        loadTasks(); // Refresh tasks when changed
+        loadDashboardData();
+    });
+    
+    // Listen for new appointments
+    const appointmentsQuery = query(collection(db, 'appointments'), orderBy('startTime', 'desc'));
+    const unsubscribeAppointments = onSnapshot(appointmentsQuery, (snapshot) => {
+        loadAppointments();
+        loadDashboardData();
+    });
+    
+    // Listen for new announcements
+    const announcementsQuery = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
+    const unsubscribeAnnouncements = onSnapshot(announcementsQuery, (snapshot) => {
+        loadAnnouncements();
+        loadDashboardData();
+    });
+}
 
 function showLoginModal() {
     const modal = new bootstrap.Modal(document.getElementById('loginModal'));
@@ -90,9 +116,7 @@ window.login = async function() {
             employee = { id: doc.id, ...doc.data() };
         });
         
-        // Check if password is set
         if (!employee.password) {
-            // First time login - show password setup
             currentEmployee = employee;
             document.getElementById('welcomeName').textContent = `Welcome, ${employee.fullName}!`;
             bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
@@ -101,14 +125,12 @@ window.login = async function() {
             return;
         }
         
-        // Verify password (simple comparison - in production use hashing)
         if (employee.password !== password) {
             messageDiv.textContent = 'Invalid password. Please try again.';
             messageDiv.classList.remove('d-none');
             return;
         }
         
-        // Login successful
         currentEmployee = employee;
         localStorage.setItem('currentUser', JSON.stringify(currentEmployee));
         bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
@@ -141,7 +163,6 @@ window.setupPassword = async function() {
     messageDiv.classList.add('d-none');
     
     try {
-        // Save password to employee record (in production, hash this!)
         await updateDoc(doc(db, 'employees', currentEmployee.id), {
             password: newPassword,
             passwordSetup: true,
@@ -237,6 +258,7 @@ window.checkIn = async function() {
             employeeId: currentEmployee.id,
             employeeName: currentEmployee.fullName,
             employeeDSSN: currentEmployee.dssn,
+            employeePosition: currentEmployee.position,
             date: today,
             checkIn: Timestamp.now(),
             checkInLocation: window.currentLocation,
@@ -346,12 +368,12 @@ async function loadDashboardData() {
         const todayHoursElem = document.getElementById('todayHours');
         if (todayHoursElem) todayHoursElem.textContent = hours.toFixed(1);
         
-        const tasksQ = query(collection(db, 'tasks'), where('assignedTo', '==', currentEmployee.id), where('status', 'in', ['pending', 'in_progress']));
+        const tasksQ = query(collection(db, 'tasks'), where('status', 'in', ['pending', 'in_progress']));
         const tasksSnapshot = await getDocs(tasksQ);
         const pendingTasksElem = document.getElementById('pendingTasks');
         if (pendingTasksElem) pendingTasksElem.textContent = tasksSnapshot.size;
         
-        const appointmentsQ = query(collection(db, 'appointments'), where('attendees', 'array-contains', currentEmployee.id), where('startTime', '>=', Timestamp.now()));
+        const appointmentsQ = query(collection(db, 'appointments'), where('startTime', '>=', Timestamp.now()));
         const appointmentsSnapshot = await getDocs(appointmentsQ);
         const todayAppointmentsElem = document.getElementById('todayAppointments');
         if (todayAppointmentsElem) todayAppointmentsElem.textContent = appointmentsSnapshot.size;
@@ -361,33 +383,159 @@ async function loadDashboardData() {
         const unreadAnnouncementsElem = document.getElementById('unreadAnnouncements');
         if (unreadAnnouncementsElem) unreadAnnouncementsElem.textContent = announcementsSnapshot.size;
         
-        const activitiesQ = query(collection(db, 'attendance'), where('employeeId', '==', currentEmployee.id), orderBy('createdAt', 'desc'), limit(5));
+        // Recent activities - clickable
+        const activitiesQ = query(collection(db, 'attendance'), orderBy('createdAt', 'desc'), limit(10));
         const activitiesSnapshot = await getDocs(activitiesQ);
         const activitiesHtml = [];
         activitiesSnapshot.forEach(doc => {
             const data = doc.data();
-            activitiesHtml.push(`<div class="activity-item"><i class="fas fa-clock"></i> ${data.date} - ${data.checkIn?.toDate().toLocaleTimeString() || 'Checked in'}</div>`);
+            activitiesHtml.push(`
+                <div class="activity-item glass-card-hover" onclick="showAttendanceDetail('${doc.id}')">
+                    <i class="fas fa-clock"></i>
+                    <div class="flex-grow-1">
+                        <strong>${data.employeeName || 'Employee'}</strong> - ${data.status || 'Checked in'}
+                        <small class="d-block text-muted">${data.date} at ${data.checkIn?.toDate().toLocaleTimeString() || ''}</small>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            `);
         });
         const recentActivitiesElem = document.getElementById('recentActivities');
-        if (recentActivitiesElem) recentActivitiesElem.innerHTML = activitiesHtml.join('') || '<div class="text-muted">No recent activities</div>';
+        if (recentActivitiesElem) recentActivitiesElem.innerHTML = activitiesHtml.join('') || '<div class="text-center p-3 text-muted">No recent activities</div>';
         
-        const upcomingQ = query(collection(db, 'appointments'), where('attendees', 'array-contains', currentEmployee.id), where('startTime', '>=', Timestamp.now()), orderBy('startTime'), limit(5));
+        // Upcoming appointments - clickable
+        const upcomingQ = query(collection(db, 'appointments'), where('startTime', '>=', Timestamp.now()), orderBy('startTime'), limit(10));
         const upcomingSnapshot = await getDocs(upcomingQ);
         const upcomingHtml = [];
         upcomingSnapshot.forEach(doc => {
             const data = doc.data();
-            upcomingHtml.push(`<div class="schedule-item"><i class="fas fa-calendar"></i> ${data.title} - ${data.startTime?.toDate().toLocaleString()}</div>`);
+            upcomingHtml.push(`
+                <div class="schedule-item glass-card-hover" onclick="showAppointmentDetail('${doc.id}')">
+                    <i class="fas fa-calendar-alt"></i>
+                    <div class="flex-grow-1">
+                        <strong>${data.title}</strong>
+                        <small class="d-block text-muted">${data.startTime?.toDate().toLocaleString()} by ${data.organizerName || 'Organizer'}</small>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            `);
         });
         const upcomingAppointmentsElem = document.getElementById('upcomingAppointments');
-        if (upcomingAppointmentsElem) upcomingAppointmentsElem.innerHTML = upcomingHtml.join('') || '<div class="text-muted">No upcoming appointments</div>';
+        if (upcomingAppointmentsElem) upcomingAppointmentsElem.innerHTML = upcomingHtml.join('') || '<div class="text-center p-3 text-muted">No upcoming appointments</div>';
+        
     } catch (error) {
         console.error('Error loading dashboard:', error);
     }
 }
 
+// Clickable Detail View Functions
+window.showTaskDetail = async function(taskId) {
+    const taskDoc = await getDoc(doc(db, 'tasks', taskId));
+    if (!taskDoc.exists()) return;
+    const task = taskDoc.data();
+    
+    Swal.fire({
+        title: task.title,
+        html: `
+            <div class="text-start">
+                <p><strong>Description:</strong><br>${task.description || 'No description'}</p>
+                <p><strong>Priority:</strong> <span class="badge bg-${task.priority === 'High' ? 'danger' : task.priority === 'Medium' ? 'warning' : 'info'}">${task.priority || 'Medium'}</span></p>
+                <p><strong>Status:</strong> <span class="badge bg-${task.status === 'completed' ? 'success' : 'warning'}">${task.status || 'pending'}</span></p>
+                <p><strong>Assigned To:</strong> ${task.assignedByName || 'Unknown'}</p>
+                <p><strong>Due Date:</strong> ${task.dueDate?.toDate().toLocaleDateString() || 'No date'}</p>
+                <p><strong>Created By:</strong> ${task.createdByName || task.assignedByName}</p>
+                <p><strong>Created At:</strong> ${task.createdAt?.toDate().toLocaleString()}</p>
+            </div>
+        `,
+        icon: 'info',
+        confirmButtonColor: '#6c63ff',
+        background: 'rgba(0,0,0,0.9)',
+        backdrop: 'rgba(0,0,0,0.8)'
+    });
+};
+
+window.showAppointmentDetail = async function(appointmentId) {
+    const appointmentDoc = await getDoc(doc(db, 'appointments', appointmentId));
+    if (!appointmentDoc.exists()) return;
+    const apt = appointmentDoc.data();
+    
+    Swal.fire({
+        title: apt.title,
+        html: `
+            <div class="text-start">
+                <p><strong>Type:</strong> ${apt.type}</p>
+                <p><strong>Date & Time:</strong> ${apt.startTime?.toDate().toLocaleString()}</p>
+                <p><strong>Duration:</strong> ${apt.duration || 60} minutes</p>
+                <p><strong>Location:</strong> ${apt.location || 'Not specified'}</p>
+                <p><strong>Description:</strong><br>${apt.description || 'No description'}</p>
+                <p><strong>Organized By:</strong> ${apt.organizerName} (${apt.organizerPosition || 'Staff'})</p>
+                <p><strong>Status:</strong> <span class="badge bg-${apt.status === 'scheduled' ? 'primary' : 'secondary'}">${apt.status}</span></p>
+            </div>
+        `,
+        icon: 'info',
+        confirmButtonColor: '#6c63ff',
+        background: 'rgba(0,0,0,0.9)',
+        backdrop: 'rgba(0,0,0,0.8)'
+    });
+};
+
+window.showAnnouncementDetail = async function(announcementId) {
+    const announcementDoc = await getDoc(doc(db, 'announcements', announcementId));
+    if (!announcementDoc.exists()) return;
+    const ann = announcementDoc.data();
+    
+    Swal.fire({
+        title: ann.title,
+        html: `
+            <div class="text-start">
+                <p><strong>Priority:</strong> <span class="badge bg-${ann.priority === 'Urgent' ? 'danger' : ann.priority === 'High' ? 'warning' : 'info'}">${ann.priority || 'Normal'}</span></p>
+                <p><strong>Message:</strong><br>${ann.message}</p>
+                <p><strong>Posted By:</strong> ${ann.authorName} (${ann.authorPosition || 'Administrator'})</p>
+                <p><strong>Posted At:</strong> ${ann.createdAt?.toDate().toLocaleString()}</p>
+            </div>
+        `,
+        icon: 'info',
+        confirmButtonColor: '#6c63ff',
+        background: 'rgba(0,0,0,0.9)',
+        backdrop: 'rgba(0,0,0,0.8)'
+    });
+    
+    // Mark as read
+    if (!ann.readBy?.includes(currentEmployee.id)) {
+        await updateDoc(doc(db, 'announcements', announcementId), {
+            readBy: [...(ann.readBy || []), currentEmployee.id]
+        });
+    }
+};
+
+window.showAttendanceDetail = async function(attendanceId) {
+    const attendanceDoc = await getDoc(doc(db, 'attendance', attendanceId));
+    if (!attendanceDoc.exists()) return;
+    const att = attendanceDoc.data();
+    
+    Swal.fire({
+        title: `${att.employeeName}'s Attendance`,
+        html: `
+            <div class="text-start">
+                <p><strong>Date:</strong> ${att.date}</p>
+                <p><strong>Check In:</strong> ${att.checkIn?.toDate().toLocaleTimeString() || 'Not checked in'}</p>
+                <p><strong>Check Out:</strong> ${att.checkOut?.toDate().toLocaleTimeString() || 'Not checked out'}</p>
+                <p><strong>Status:</strong> <span class="badge bg-${att.status === 'present' ? 'success' : 'warning'}">${att.status}</span></p>
+                <p><strong>Location:</strong> ${att.checkInLocation ? `Lat: ${att.checkInLocation.lat}, Lng: ${att.checkInLocation.lng}` : 'Not captured'}</p>
+                <p><strong>Notes:</strong> ${att.notes || 'No notes'}</p>
+                <p><strong>Employee:</strong> ${att.employeeName} (${att.employeePosition || 'Staff'})</p>
+            </div>
+        `,
+        icon: 'info',
+        confirmButtonColor: '#6c63ff',
+        background: 'rgba(0,0,0,0.9)',
+        backdrop: 'rgba(0,0,0,0.8)'
+    });
+};
+
 async function loadAttendanceHistory() {
     try {
-        const q = query(collection(db, 'attendance'), where('employeeId', '==', currentEmployee.id), orderBy('date', 'desc'), limit(30));
+        const q = query(collection(db, 'attendance'), orderBy('date', 'desc'), limit(30));
         const snapshot = await getDocs(q);
         const tableBody = document.getElementById('attendanceHistoryTable');
         if (!tableBody) return;
@@ -401,13 +549,16 @@ async function loadAttendanceHistory() {
                 const checkOut = data.checkOut.toDate();
                 hours = ((checkOut - checkIn) / (1000 * 60 * 60)).toFixed(1);
             }
-            tableBody.innerHTML += `<tr>
-                <td>${data.date}</td>
-                <td>${data.checkIn?.toDate().toLocaleTimeString() || '-'}</td>
-                <td>${data.checkOut?.toDate().toLocaleTimeString() || '-'}</td>
-                <td>${hours}</td>
-                <td><span class="status-badge status-${data.status}">${data.status}</span></td>
-            </tr>`;
+            tableBody.innerHTML += `
+                <tr onclick="showAttendanceDetail('${doc.id}')" style="cursor: pointer;">
+                    <td>${data.employeeName || 'Employee'} <small class="text-muted d-block">${data.employeePosition || ''}</small></td>
+                    <td>${data.date}</td>
+                    <td>${data.checkIn?.toDate().toLocaleTimeString() || '-'}</td>
+                    <td>${data.checkOut?.toDate().toLocaleTimeString() || '-'}</td>
+                    <td>${hours}</td>
+                    <td><span class="status-badge status-${data.status}">${data.status}</span></td>
+                </tr>
+            `;
         });
     } catch (error) {
         console.error('Error loading attendance history:', error);
@@ -416,7 +567,7 @@ async function loadAttendanceHistory() {
 
 async function loadAppointments() {
     try {
-        const q = query(collection(db, 'appointments'), where('attendees', 'array-contains', currentEmployee.id), orderBy('startTime', 'desc'));
+        const q = query(collection(db, 'appointments'), orderBy('startTime', 'desc'));
         const snapshot = await getDocs(q);
         const tableBody = document.getElementById('appointmentsTable');
         if (!tableBody) return;
@@ -424,13 +575,15 @@ async function loadAppointments() {
         
         snapshot.forEach(doc => {
             const data = doc.data();
-            tableBody.innerHTML += `<tr>
-                <td>${data.title}</td>
-                <td>${data.startTime?.toDate().toLocaleString()}</td>
-                <td>${data.type}</td>
-                <td><span class="status-badge status-${data.status}">${data.status}</span></td>
-                <td><button class="btn-glass-sm" onclick="viewAppointment('${doc.id}')">View</button></td>
-            </tr>`;
+            tableBody.innerHTML += `
+                <tr onclick="showAppointmentDetail('${doc.id}')" style="cursor: pointer;">
+                    <td>${data.title}</td>
+                    <td>${data.startTime?.toDate().toLocaleString()}</td>
+                    <td>${data.type}</td>
+                    <td><span class="status-badge status-${data.status}">${data.status}</span></td>
+                    <td><small>By: ${data.organizerName}</small></td>
+                </tr>
+            `;
         });
         
         if (calendar) calendar.destroy();
@@ -441,8 +594,9 @@ async function loadAppointments() {
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },
                 events: snapshot.docs.map(doc => {
                     const data = doc.data();
-                    return { title: data.title, start: data.startTime?.toDate(), extendedProps: { type: data.type } };
+                    return { title: `${data.title} (${data.organizerName})`, start: data.startTime?.toDate(), extendedProps: { type: data.type, id: doc.id } };
                 }),
+                eventClick: (info) => showAppointmentDetail(info.event.extendedProps.id),
                 themeSystem: 'standard',
                 height: 'auto'
             });
@@ -458,9 +612,9 @@ async function loadTasks() {
         const filter = document.getElementById('taskFilter')?.value || 'all';
         let q;
         if (filter === 'all') {
-            q = query(collection(db, 'tasks'), where('assignedTo', '==', currentEmployee.id), orderBy('dueDate'));
+            q = query(collection(db, 'tasks'), orderBy('dueDate'));
         } else {
-            q = query(collection(db, 'tasks'), where('assignedTo', '==', currentEmployee.id), where('status', '==', filter), orderBy('dueDate'));
+            q = query(collection(db, 'tasks'), where('status', '==', filter), orderBy('dueDate'));
         }
         const snapshot = await getDocs(q);
         const container = document.getElementById('tasksList');
@@ -471,7 +625,7 @@ async function loadTasks() {
             const data = doc.data();
             const priorityClass = `task-highlight-${data.priority?.toLowerCase() || 'low'}`;
             container.innerHTML += `
-                <div class="task-card ${priorityClass}">
+                <div class="task-card ${priorityClass}" onclick="showTaskDetail('${doc.id}')" style="cursor: pointer;">
                     <div class="d-flex justify-content-between align-items-center">
                         <h6>${data.title}</h6>
                         <span class="status-badge status-${data.status}">${data.status}</span>
@@ -479,10 +633,7 @@ async function loadTasks() {
                     <p class="small text-muted mt-2">${data.description || ''}</p>
                     <div class="d-flex justify-content-between align-items-center mt-2">
                         <small><i class="far fa-calendar-alt"></i> Due: ${data.dueDate?.toDate().toLocaleDateString() || 'No date'}</small>
-                        <div>
-                            ${data.status !== 'completed' ? `<button class="btn-glass-sm me-2" onclick="updateTaskStatus('${doc.id}', 'completed')">Complete</button>` : ''}
-                            <button class="btn-glass-sm" onclick="viewTask('${doc.id}')">View</button>
-                        </div>
+                        <small><i class="fas fa-user"></i> Assigned by: ${data.createdByName || data.assignedByName}</small>
                     </div>
                 </div>
             `;
@@ -496,7 +647,7 @@ async function loadTasks() {
 
 async function loadLeaveRequests() {
     try {
-        const q = query(collection(db, 'leave_requests'), where('employeeId', '==', currentEmployee.id), orderBy('createdAt', 'desc'));
+        const q = query(collection(db, 'leave_requests'), orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(q);
         const container = document.getElementById('leaveRequestsList');
         if (!container) return;
@@ -507,13 +658,14 @@ async function loadLeaveRequests() {
             const data = doc.data();
             if (data.status === 'pending') pending++;
             container.innerHTML += `
-                <div class="glass-card-inner p-3 mb-2">
+                <div class="glass-card-inner p-3 mb-2" onclick="showLeaveDetail('${doc.id}')" style="cursor: pointer;">
                     <div class="d-flex justify-content-between">
-                        <span><strong>${data.type}</strong> - ${data.startDate} to ${data.endDate}</span>
+                        <span><strong>${data.employeeName}</strong> - ${data.type}</span>
                         <span class="status-badge status-${data.status}">${data.status}</span>
                     </div>
-                    <p class="small mt-2">${data.reason}</p>
-                    ${data.approvedBy ? `<small class="text-muted">Approved by: ${data.approvedBy}</small>` : ''}
+                    <div><small>${data.startDate} to ${data.endDate} (${data.totalDays} days)</small></div>
+                    <p class="small mt-1">${data.reason}</p>
+                    <small class="text-muted">Requested: ${data.createdAt?.toDate().toLocaleDateString()}</small>
                 </div>
             `;
         });
@@ -531,22 +683,25 @@ async function loadLeaveRequests() {
 
 async function loadExpenses() {
     try {
-        const q = query(collection(db, 'expenses'), where('employeeId', '==', currentEmployee.id), orderBy('createdAt', 'desc'));
+        const q = query(collection(db, 'expenses'), orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(q);
         const container = document.getElementById('expensesList');
         if (!container) return;
-        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>';
+        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>';
         const tbody = container.querySelector('tbody');
         
         snapshot.forEach(doc => {
             const data = doc.data();
-            tbody.innerHTML += `<tr>
-                <td>${data.date}</td>
-                <td>${data.category}</td>
-                <td>$${data.amount}</td>
-                <td><span class="status-badge status-${data.status}">${data.status}</span></td>
-                <td><button class="btn-glass-sm" onclick="viewExpense('${doc.id}')">View</button></td>
-            </tr>`;
+            tbody.innerHTML += `
+                <tr>
+                    <td>${data.employeeName} <small class="text-muted d-block">${data.employeePosition || ''}</small></td>
+                    <td>${data.date}</td>
+                    <td>${data.category}</td>
+                    <td>$${data.amount}</td>
+                    <td><span class="status-badge status-${data.status}">${data.status}</span></td>
+                    <td><button class="btn-glass-sm" onclick="showExpenseDetail('${doc.id}')">View</button></td>
+                </tr>
+            `;
         });
     } catch (error) {
         console.error('Error loading expenses:', error);
@@ -559,19 +714,27 @@ async function loadDocuments() {
         const snapshot = await getDocs(q);
         const container = document.getElementById('documentsList');
         if (!container) return;
-        container.innerHTML = '';
+        container.innerHTML = `
+            <div class="text-end mb-3">
+                <button class="btn-glass-primary" onclick="showAddDocumentModal()"><i class="fas fa-plus"></i> Upload Document</button>
+            </div>
+            <div class="row g-3" id="documentsGrid"></div>
+        `;
+        const grid = container.querySelector('#documentsGrid');
+        grid.innerHTML = '';
         
         snapshot.forEach(doc => {
             const data = doc.data();
-            container.innerHTML += `
-                <div class="glass-card-inner p-3">
-                    <div class="d-flex align-items-center gap-3">
-                        <i class="fas fa-file-pdf fa-2x text-danger"></i>
-                        <div class="flex-grow-1">
-                            <h6>${data.title}</h6>
-                            <small class="text-muted">${data.category} • Uploaded: ${data.createdAt?.toDate().toLocaleDateString()}</small>
+            grid.innerHTML += `
+                <div class="col-md-4">
+                    <div class="glass-card-inner p-3" onclick="window.open('${data.fileUrl}', '_blank')" style="cursor: pointer;">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fas fa-file-${data.fileType === 'pdf' ? 'pdf' : 'image'} fa-2x text-${data.fileType === 'pdf' ? 'danger' : 'primary'}"></i>
+                            <div class="flex-grow-1">
+                                <h6>${data.title}</h6>
+                                <small class="text-muted">Uploaded by ${data.uploadedByName} (${data.uploadedByPosition})<br>${data.createdAt?.toDate().toLocaleDateString()}</small>
+                            </div>
                         </div>
-                        <button class="btn-glass-sm" onclick="window.open('${data.fileUrl}', '_blank')"><i class="fas fa-download"></i> Download</button>
                     </div>
                 </div>
             `;
@@ -583,24 +746,36 @@ async function loadDocuments() {
 
 async function loadPerformanceReviews() {
     try {
-        const q = query(collection(db, 'performance_reviews'), where('employeeId', '==', currentEmployee.id), orderBy('reviewDate', 'desc'));
+        const q = query(collection(db, 'performance_reviews'), orderBy('reviewDate', 'desc'));
         const snapshot = await getDocs(q);
         const container = document.getElementById('performanceReviews');
         if (!container) return;
-        container.innerHTML = '';
+        container.innerHTML = `
+            <div class="text-end mb-3">
+                <button class="btn-glass-primary" onclick="showAddReviewModal()"><i class="fas fa-plus"></i> Add Review</button>
+            </div>
+            <div id="reviewsList"></div>
+        `;
+        const reviewsList = container.querySelector('#reviewsList');
+        reviewsList.innerHTML = '';
         
         snapshot.forEach(doc => {
             const data = doc.data();
             const rating = data.rating || 0;
             const stars = '⭐'.repeat(rating) + '☆'.repeat(5 - rating);
-            container.innerHTML += `
-                <div class="glass-card-inner p-3 mb-2">
+            reviewsList.innerHTML += `
+                <div class="glass-card-inner p-3 mb-2" onclick="showReviewDetail('${doc.id}')" style="cursor: pointer;">
                     <div class="d-flex justify-content-between">
-                        <h6>${data.reviewerName} - ${data.reviewDate?.toDate().toLocaleDateString()}</h6>
-                        <span>${stars}</span>
+                        <div>
+                            <strong>${data.employeeName}</strong> (${data.employeePosition})
+                            <div>${stars}</div>
+                        </div>
+                        <div class="text-end">
+                            <small>Reviewed by ${data.reviewerName} (${data.reviewerPosition})</small><br>
+                            <small class="text-muted">${data.reviewDate?.toDate().toLocaleDateString()}</small>
+                        </div>
                     </div>
-                    <p class="mt-2">${data.feedback}</p>
-                    <small class="text-muted">Goals: ${data.goals}</small>
+                    <p class="mt-2 small">${data.feedback}</p>
                 </div>
             `;
         });
@@ -615,19 +790,30 @@ async function loadAnnouncements() {
         const snapshot = await getDocs(q);
         const container = document.getElementById('announcementsList');
         if (!container) return;
-        container.innerHTML = '';
+        container.innerHTML = `
+            <div class="text-end mb-3">
+                <button class="btn-glass-primary" onclick="showAddAnnouncementModal()"><i class="fas fa-plus"></i> Post Announcement</button>
+            </div>
+            <div id="announcementsContainer"></div>
+        `;
+        const announcementsContainer = container.querySelector('#announcementsContainer');
+        announcementsContainer.innerHTML = '';
         
         for (const docSnapshot of snapshot.docs) {
             const data = docSnapshot.data();
             const isRead = data.readBy?.includes(currentEmployee.id);
-            container.innerHTML += `
-                <div class="glass-card-inner p-3 mb-2 ${isRead ? '' : 'border-primary'}">
+            announcementsContainer.innerHTML += `
+                <div class="glass-card-inner p-3 mb-2 ${isRead ? '' : 'border-primary'}" onclick="showAnnouncementDetail('${docSnapshot.id}')" style="cursor: pointer;">
                     <div class="d-flex justify-content-between">
-                        <h6><i class="fas fa-bullhorn"></i> ${data.title}</h6>
-                        <span class="badge ${data.priority === 'Urgent' ? 'bg-danger' : 'bg-primary'}">${data.priority || 'Normal'}</span>
+                        <div>
+                            <h6><i class="fas fa-bullhorn"></i> ${data.title}</h6>
+                            <p class="mt-2">${data.message}</p>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge ${data.priority === 'Urgent' ? 'bg-danger' : 'bg-primary'}">${data.priority || 'Normal'}</span><br>
+                            <small class="text-muted">Posted by ${data.authorName}<br>${data.createdAt?.toDate().toLocaleString()}</small>
+                        </div>
                     </div>
-                    <p class="mt-2">${data.message}</p>
-                    <small class="text-muted">Posted: ${data.createdAt?.toDate().toLocaleString()} by ${data.authorName}</small>
                 </div>
             `;
             
@@ -640,6 +826,185 @@ async function loadAnnouncements() {
     }
 }
 
+// Add Document Modal
+window.showAddDocumentModal = function() {
+    Swal.fire({
+        title: 'Upload Document',
+        html: `
+            <input type="text" id="docTitle" class="swal2-input" placeholder="Document Title">
+            <select id="docCategory" class="swal2-select">
+                <option>Policy</option>
+                <option>Form</option>
+                <option>Report</option>
+                <option>Other</option>
+            </select>
+            <input type="file" id="docFile" class="swal2-file" accept=".pdf,.doc,.docx,.jpg,.png">
+        `,
+        confirmButtonText: 'Upload',
+        cancelButtonText: 'Cancel',
+        showCancelButton: true,
+        background: 'rgba(0,0,0,0.9)',
+        confirmButtonColor: '#6c63ff',
+        preConfirm: async () => {
+            const title = Swal.getPopup().querySelector('#docTitle').value;
+            const category = Swal.getPopup().querySelector('#docCategory').value;
+            const file = Swal.getPopup().querySelector('#docFile').files[0];
+            
+            if (!title || !file) {
+                Swal.showValidationMessage('Please enter title and select file');
+                return false;
+            }
+            
+            const storageRef = ref(storage, `documents/${Date.now()}_${file.name}`);
+            await uploadBytes(storageRef, file);
+            const fileUrl = await getDownloadURL(storageRef);
+            
+            await addDoc(collection(db, 'documents'), {
+                title: title,
+                category: category,
+                fileUrl: fileUrl,
+                fileType: file.name.split('.').pop(),
+                uploadedById: currentEmployee.id,
+                uploadedByName: currentEmployee.fullName,
+                uploadedByPosition: currentEmployee.position,
+                createdAt: Timestamp.now()
+            });
+            
+            return true;
+        }
+    }).then(() => {
+        loadDocuments();
+    });
+};
+
+// Add Announcement Modal
+window.showAddAnnouncementModal = function() {
+    Swal.fire({
+        title: 'Post Announcement',
+        html: `
+            <input type="text" id="announceTitle" class="swal2-input" placeholder="Announcement Title">
+            <select id="announcePriority" class="swal2-select">
+                <option>Normal</option>
+                <option>High</option>
+                <option>Urgent</option>
+            </select>
+            <textarea id="announceMessage" class="swal2-textarea" placeholder="Announcement Message" rows="4"></textarea>
+        `,
+        confirmButtonText: 'Post',
+        cancelButtonText: 'Cancel',
+        showCancelButton: true,
+        background: 'rgba(0,0,0,0.9)',
+        confirmButtonColor: '#6c63ff',
+        preConfirm: async () => {
+            const title = Swal.getPopup().querySelector('#announceTitle').value;
+            const priority = Swal.getPopup().querySelector('#announcePriority').value;
+            const message = Swal.getPopup().querySelector('#announceMessage').value;
+            
+            if (!title || !message) {
+                Swal.showValidationMessage('Please fill all fields');
+                return false;
+            }
+            
+            await addDoc(collection(db, 'announcements'), {
+                title: title,
+                priority: priority,
+                message: message,
+                authorId: currentEmployee.id,
+                authorName: currentEmployee.fullName,
+                authorPosition: currentEmployee.position,
+                readBy: [],
+                createdAt: Timestamp.now()
+            });
+            
+            return true;
+        }
+    }).then(() => {
+        loadAnnouncements();
+        loadDashboardData();
+    });
+};
+
+// Add Review Modal
+window.showAddReviewModal = function() {
+    // First select employee
+    Swal.fire({
+        title: 'Select Employee',
+        input: 'select',
+        inputOptions: async () => {
+            const snapshot = await getDocs(collection(db, 'employees'));
+            const options = {};
+            snapshot.forEach(doc => {
+                const emp = doc.data();
+                options[doc.id] = `${emp.fullName} (${emp.position})`;
+            });
+            return options;
+        },
+        inputPlaceholder: 'Select an employee',
+        showCancelButton: true,
+        background: 'rgba(0,0,0,0.9)',
+        confirmButtonColor: '#6c63ff',
+        preConfirm: (employeeId) => {
+            if (!employeeId) {
+                Swal.showValidationMessage('Please select an employee');
+                return false;
+            }
+            return employeeId;
+        }
+    }).then((result) => {
+        if (result.value) {
+            showReviewForm(result.value);
+        }
+    });
+};
+
+function showReviewForm(employeeId) {
+    Swal.fire({
+        title: 'Performance Review',
+        html: `
+            <input type="number" id="reviewRating" class="swal2-input" placeholder="Rating (1-5)" min="1" max="5" step="1">
+            <textarea id="reviewFeedback" class="swal2-textarea" placeholder="Feedback" rows="4"></textarea>
+            <input type="text" id="reviewGoals" class="swal2-input" placeholder="Goals for next period">
+        `,
+        confirmButtonText: 'Submit Review',
+        cancelButtonText: 'Cancel',
+        showCancelButton: true,
+        background: 'rgba(0,0,0,0.9)',
+        confirmButtonColor: '#6c63ff',
+        preConfirm: async () => {
+            const rating = parseInt(Swal.getPopup().querySelector('#reviewRating').value);
+            const feedback = Swal.getPopup().querySelector('#reviewFeedback').value;
+            const goals = Swal.getPopup().querySelector('#reviewGoals').value;
+            
+            if (!rating || !feedback) {
+                Swal.showValidationMessage('Please fill rating and feedback');
+                return false;
+            }
+            
+            const employeeDoc = await getDoc(doc(db, 'employees', employeeId));
+            const employee = employeeDoc.data();
+            
+            await addDoc(collection(db, 'performance_reviews'), {
+                employeeId: employeeId,
+                employeeName: employee.fullName,
+                employeePosition: employee.position,
+                rating: rating,
+                feedback: feedback,
+                goals: goals,
+                reviewerId: currentEmployee.id,
+                reviewerName: currentEmployee.fullName,
+                reviewerPosition: currentEmployee.position,
+                reviewDate: Timestamp.now(),
+                createdAt: Timestamp.now()
+            });
+            
+            return true;
+        }
+    }).then(() => {
+        loadPerformanceReviews();
+    });
+}
+
+// Existing functions from previous code...
 window.showAddAppointmentModal = function() {
     const dateTimeInput = document.getElementById('appointmentDateTime');
     if (dateTimeInput) dateTimeInput.value = new Date().toISOString().slice(0, 16);
@@ -667,6 +1032,7 @@ window.createAppointment = async function() {
         description: description,
         organizerId: currentEmployee.id,
         organizerName: currentEmployee.fullName,
+        organizerPosition: currentEmployee.position,
         attendees: [currentEmployee.id],
         status: 'scheduled',
         createdAt: Timestamp.now()
@@ -675,6 +1041,7 @@ window.createAppointment = async function() {
     bootstrap.Modal.getInstance(document.getElementById('appointmentModal')).hide();
     showToast('Appointment scheduled successfully', 'success');
     await loadAppointments();
+    await loadDashboardData();
 };
 
 window.showAddTaskModal = function() {
@@ -699,6 +1066,7 @@ window.createTask = async function() {
         description: description,
         assignedTo: currentEmployee.id,
         assignedByName: currentEmployee.fullName,
+        createdByName: currentEmployee.fullName,
         status: 'pending',
         createdAt: Timestamp.now()
     });
@@ -736,6 +1104,7 @@ window.submitLeaveRequest = async function() {
         reason: reason,
         employeeId: currentEmployee.id,
         employeeName: currentEmployee.fullName,
+        employeePosition: currentEmployee.position,
         status: 'pending',
         createdAt: Timestamp.now()
     });
@@ -776,6 +1145,7 @@ window.submitExpense = async function() {
         receiptUrl: receiptUrl,
         employeeId: currentEmployee.id,
         employeeName: currentEmployee.fullName,
+        employeePosition: currentEmployee.position,
         status: 'pending',
         createdAt: Timestamp.now()
     });
@@ -836,3 +1206,8 @@ function showToast(message, type) {
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
 }
+
+// Add SweetAlert2 for modals
+const swalScript = document.createElement('script');
+swalScript.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+document.head.appendChild(swalScript);
