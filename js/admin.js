@@ -7,7 +7,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!userJson) { window.location.href = 'index.html'; return; }
     
     currentAdmin = JSON.parse(userJson);
-    if (currentAdmin.role !== 'admin') { window.location.href = 'index.html'; return; }
+    const isAdmin = currentAdmin.role === 'admin' || currentAdmin.role === 'super admin';
+    if (!isAdmin) { window.location.href = 'index.html'; return; }
     
     await loadEmployees();
     await loadTodayAttendance();
@@ -31,10 +32,13 @@ async function loadEmployees() {
         tableBody.innerHTML += `<tr>
             <td>${emp.fullName}</td>
             <td>${emp.dssn}</td>
-            <td>${emp.department}</td>
-            <td>${emp.position}</td>
-            <td><span class="status-badge status-present">Active</span></td>
-            <td><button class="btn-glass-sm" onclick="editEmployee('${doc.id}')">Edit</button> <button class="btn-glass-sm text-danger" onclick="deleteEmployee('${doc.id}')">Delete</button></td>
+            <td>${emp.department || '-'}</td>
+            <td>${emp.position || '-'}</td>
+            <td><span class="status-badge ${emp.password ? 'status-present' : 'status-pending'}">${emp.password ? 'Active' : 'Password Pending'}</span></td>
+            <td>
+                <button class="btn-glass-sm" onclick="resetEmployeePassword('${doc.id}', '${emp.fullName}')">Reset Password</button>
+                <button class="btn-glass-sm text-danger" onclick="deleteEmployee('${doc.id}')">Delete</button>
+            </td>
         </tr>`;
     });
 }
@@ -55,8 +59,8 @@ async function loadTodayAttendance() {
         if (data.date === today) todayRecords.push({ id: doc.id, ...data });
     });
     
-    for (const emp of Object.values(employees)) {
-        const record = todayRecords.find(r => r.employeeId === emp.id);
+    for (const [id, emp] of Object.entries(employees)) {
+        const record = todayRecords.find(r => r.employeeId === id);
         let hours = '-';
         if (record?.checkIn && record?.checkOut) {
             const checkIn = record.checkIn.toDate();
@@ -74,6 +78,15 @@ async function loadTodayAttendance() {
 }
 
 window.showAddEmployeeModal = function() {
+    document.getElementById('empName').value = '';
+    document.getElementById('empEmail').value = '';
+    document.getElementById('empDSSN').value = '';
+    document.getElementById('empDepartment').value = 'Engineering';
+    document.getElementById('empPosition').value = '';
+    document.getElementById('empPhone').value = '';
+    document.getElementById('empSalary').value = '';
+    document.getElementById('empRole').value = 'employee';
+    
     const modal = new bootstrap.Modal(document.getElementById('employeeModal'));
     modal.show();
 };
@@ -88,7 +101,11 @@ window.addEmployee = async function() {
     const salary = parseFloat(document.getElementById('empSalary').value);
     const role = document.getElementById('empRole').value;
     
-    if (!fullName || !email || !dssn) { alert('Please fill required fields'); return; }
+    if (!fullName || !email || !dssn) { alert('Please fill required fields: Name, Email, and DSSN'); return; }
+    
+    const q = query(collection(db, 'employees'), where('dssn', '==', dssn));
+    const existing = await getDocs(q);
+    if (!existing.empty) { alert('DSSN already exists! Please use a unique DSSN.'); return; }
     
     await addDoc(collection(db, 'employees'), {
         fullName: fullName,
@@ -97,17 +114,37 @@ window.addEmployee = async function() {
         department: department,
         position: position,
         phone: phone,
-        salary: salary,
+        salary: salary || 0,
         role: role,
         annualLeave: 20,
         sickLeave: 10,
         status: 'active',
+        password: null, // No password set - employee will set on first login
         createdAt: Timestamp.now()
     });
     
     bootstrap.Modal.getInstance(document.getElementById('employeeModal')).hide();
-    alert('Employee added successfully');
+    alert('Employee added successfully! They will set their password on first login.');
     await loadEmployees();
+};
+
+window.resetEmployeePassword = async function(employeeId, employeeName) {
+    if (confirm(`Reset password for ${employeeName}? They will need to set a new password on next login.`)) {
+        await updateDoc(doc(db, 'employees', employeeId), {
+            password: null,
+            passwordSetup: false
+        });
+        alert(`Password reset for ${employeeName}. They will set a new password on next login.`);
+        await loadEmployees();
+    }
+};
+
+window.deleteEmployee = async function(id) {
+    if (confirm('Are you sure you want to delete this employee? This action cannot be undone.')) {
+        await deleteDoc(doc(db, 'employees', id));
+        await loadEmployees();
+        alert('Employee deleted');
+    }
 };
 
 window.generateReport = async function() {
@@ -180,16 +217,16 @@ window.calculatePayroll = async function() {
         const hourlyRate = dailyRate / 8;
         const amount = totalHours * hourlyRate;
         
-        payroll.push({ name: emp.fullName, hours: totalHours.toFixed(1), salary: emp.salary, amount: amount.toFixed(2) });
+        payroll.push({ name: emp.fullName, position: emp.position, hours: totalHours.toFixed(1), salary: emp.salary, amount: amount.toFixed(2) });
     }
     
     const resultsDiv = document.getElementById('payrollResults');
     resultsDiv.innerHTML = `
         <div class="table-responsive mt-3">
             <table class="glass-table">
-                <thead><tr><th>Employee</th><th>Hours Worked</th><th>Monthly Salary</th><th>Pro-rated Amount</th></tr></thead>
+                <thead><tr><th>Employee</th><th>Position</th><th>Hours Worked</th><th>Monthly Salary</th><th>Pro-rated Amount</th></tr></thead>
                 <tbody>
-                    ${payroll.map(p => `<tr><td>${p.name}</td><td>${p.hours}</td><td>$${p.salary}</td><td>$${p.amount}</td></tr>`).join('')}
+                    ${payroll.map(p => `<tr><td>${p.name}</td><td>${p.position}</td><td>${p.hours}</td><td>$${p.salary}</td><td>$${p.amount}</td>`).join('')}
                 </tbody>
             </table>
         </div>
@@ -220,18 +257,8 @@ window.postAnnouncement = async function() {
     
     bootstrap.Modal.getInstance(document.getElementById('announcementModal')).hide();
     alert('Announcement posted successfully');
-};
-
-window.editEmployee = async function(id) {
-    // Implementation for editing employee
-    alert('Edit functionality coming soon');
-};
-
-window.deleteEmployee = async function(id) {
-    if (confirm('Are you sure you want to delete this employee?')) {
-        await deleteDoc(doc(db, 'employees', id));
-        await loadEmployees();
-    }
+    document.getElementById('announceTitle').value = '';
+    document.getElementById('announceMessage').value = '';
 };
 
 window.logout = function() {
