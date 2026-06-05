@@ -544,3 +544,46 @@ body {
     border-color: #667eea !important;
     box-shadow: 0 0 0 3px rgba(102,126,234,0.3) !important;
 }
+
+/* Grok-inspired black theme */
+body {
+    background: #000000;
+    background: radial-gradient(circle at 20% 30%, #0a0a0a, #000000);
+}
+
+.glass-nav {
+    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-glass {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(255,255,255,0.1);
+}
+
+.glass-card {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.glass-card-inner {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.glass-stat-card {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.task-card-mini, .leave-card-mini, .expense-card-mini {
+    transition: all 0.2s ease;
+}
+
+.task-card-mini:hover, .leave-card-mini:hover, .expense-card-mini:hover {
+    transform: translateX(5px);
+    background: rgba(255,255,255,0.1);
+}
