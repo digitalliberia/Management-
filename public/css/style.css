@@ -410,3 +410,137 @@ body {
     background: linear-gradient(135deg, #667eea, #764ba2);
     border-radius: 10px;
 }
+
+/* Additional Modern Glass Effects */
+.glass-card-hover {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.glass-card-hover:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateX(5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+}
+
+.activity-item, .schedule-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.activity-item:hover, .schedule-item:hover {
+    background: rgba(102, 126, 234, 0.2);
+    transform: translateX(5px);
+}
+
+.glass-stat-card {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.25), rgba(118, 75, 162, 0.25));
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-stat-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.35), rgba(118, 75, 162, 0.35));
+    box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+}
+
+.task-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.task-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.glass-table tr {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.glass-table tr:hover {
+    background: rgba(102, 126, 234, 0.15);
+}
+
+/* Animated gradient border */
+.glass-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.5s;
+}
+
+.glass-card:hover::before {
+    left: 100%;
+}
+
+/* Modern scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #764ba2, #667eea);
+}
+
+/* SweetAlert2 custom styling */
+.swal2-popup {
+    backdrop-filter: blur(20px);
+    background: rgba(0, 0, 0, 0.95) !important;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+}
+
+.swal2-title, .swal2-html-container {
+    color: white !important;
+}
+
+.swal2-input, .swal2-select, .swal2-textarea, .swal2-file {
+    background: rgba(255,255,255,0.1) !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    color: white !important;
+    border-radius: 10px !important;
+}
+
+.swal2-input:focus, .swal2-select:focus, .swal2-textarea:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.3) !important;
+}
