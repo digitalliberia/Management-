@@ -214,15 +214,15 @@ window.getLocation = function() {
                 if (locationDisplay) {
                     locationDisplay.value = `Lat: ${window.currentLocation.lat.toFixed(6)}, Lng: ${window.currentLocation.lng.toFixed(6)}`;
                 }
-                Swal.fire({ title: 'Success', text: 'Location captured successfully', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
+                Swal.fire({ title: 'Success', text: 'Location captured successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
             },
-            (error) => { Swal.fire({ title: 'Error', text: 'Unable to get location: ' + error.message, icon: 'error', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' }); }
+            (error) => { Swal.fire({ title: 'Error', text: 'Unable to get location: ' + error.message, icon: 'error', background: '#000', confirmButtonColor: '#6c63ff' }); }
         );
     }
 };
 
 window.checkIn = async function() {
-    if (!window.currentLocation) { Swal.fire({ title: 'Error', text: 'Please capture your location first', icon: 'error', background: 'rgba(0,0,0,0.9)' }); return; }
+    if (!window.currentLocation) { Swal.fire({ title: 'Error', text: 'Please capture your location first', icon: 'error', background: '#000' }); return; }
     
     if (!canvas || !ctx) return;
     const imageData = canvas.toDataURL();
@@ -243,7 +243,7 @@ window.checkIn = async function() {
             createdAt: Timestamp.now()
         });
         
-        Swal.fire({ title: 'Success', text: 'Checked in successfully!', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
+        Swal.fire({ title: 'Success', text: 'Checked in successfully!', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
         
         const checkInBtn = document.getElementById('checkInBtn');
         const checkOutBtn = document.getElementById('checkOutBtn');
@@ -256,7 +256,7 @@ window.checkIn = async function() {
         await loadAttendanceHistory();
         await loadDashboardData();
     } catch (error) {
-        Swal.fire({ title: 'Error', text: 'Check-in failed: ' + error.message, icon: 'error', background: 'rgba(0,0,0,0.9)' });
+        Swal.fire({ title: 'Error', text: 'Check-in failed: ' + error.message, icon: 'error', background: '#000' });
     }
 };
 
@@ -276,7 +276,7 @@ window.checkOut = async function() {
                 updatedAt: Timestamp.now()
             });
             
-            Swal.fire({ title: 'Success', text: 'Checked out successfully!', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
+            Swal.fire({ title: 'Success', text: 'Checked out successfully!', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
             
             const checkOutBtn = document.getElementById('checkOutBtn');
             const statusDiv = document.getElementById('attendanceStatus');
@@ -288,7 +288,7 @@ window.checkOut = async function() {
             await loadDashboardData();
         }
     } catch (error) {
-        Swal.fire({ title: 'Error', text: 'Check-out failed: ' + error.message, icon: 'error', background: 'rgba(0,0,0,0.9)' });
+        Swal.fire({ title: 'Error', text: 'Check-out failed: ' + error.message, icon: 'error', background: '#000' });
     }
 };
 
@@ -327,6 +327,7 @@ async function updateAttendanceButton() {
     }
 }
 
+// ========== UPDATED DASHBOARD WITH CLICKABLE CARDS FOR ALL SECTIONS ==========
 async function loadDashboardData() {
     try {
         const today = new Date().toISOString().split('T')[0];
@@ -362,7 +363,7 @@ async function loadDashboardData() {
         const unreadAnnouncementsElem = document.getElementById('unreadAnnouncements');
         if (unreadAnnouncementsElem) unreadAnnouncementsElem.textContent = unreadCount;
         
-        // Recent activities
+        // Recent activities - clickable
         const activitiesQ = query(collection(db, 'attendance'), orderBy('createdAt', 'desc'), limit(10));
         const activitiesSnapshot = await getDocs(activitiesQ);
         const activitiesHtml = [];
@@ -370,44 +371,257 @@ async function loadDashboardData() {
             const data = doc.data();
             activitiesHtml.push(`
                 <div class="activity-item glass-card-hover" onclick="showAttendanceDetail('${doc.id}')" style="cursor: pointer;">
-                    <i class="fas fa-clock"></i>
+                    <i class="fas fa-clock" style="color: #a8b5ff;"></i>
                     <div class="flex-grow-1">
                         <strong>${data.employeeName || 'Employee'}</strong> - ${data.status || 'Checked in'}
                         <small class="d-block text-muted">${data.date} at ${data.checkIn?.toDate().toLocaleTimeString() || ''}</small>
                     </div>
-                    <i class="fas fa-chevron-right"></i>
+                    <i class="fas fa-chevron-right" style="color: #a8b5ff;"></i>
                 </div>
             `);
         });
         const recentActivitiesElem = document.getElementById('recentActivities');
         if (recentActivitiesElem) recentActivitiesElem.innerHTML = activitiesHtml.join('') || '<div class="text-center p-3 text-muted">No recent activities</div>';
         
-        // Upcoming appointments
-        const upcomingQ = query(collection(db, 'appointments'), orderBy('startTime'), limit(10));
+        // Upcoming appointments - clickable
+        const upcomingQ = query(collection(db, 'appointments'), where('startTime', '>=', Timestamp.now()), orderBy('startTime'), limit(10));
         const upcomingSnapshot = await getDocs(upcomingQ);
         const upcomingHtml = [];
         upcomingSnapshot.forEach(doc => {
             const data = doc.data();
             upcomingHtml.push(`
                 <div class="schedule-item glass-card-hover" onclick="showAppointmentDetail('${doc.id}')" style="cursor: pointer;">
-                    <i class="fas fa-calendar-alt"></i>
+                    <i class="fas fa-calendar-alt" style="color: #a8b5ff;"></i>
                     <div class="flex-grow-1">
                         <strong>${data.title}</strong>
                         <small class="d-block text-muted">${data.startTime?.toDate().toLocaleString()} by ${data.organizerName || 'Organizer'}</small>
                     </div>
-                    <i class="fas fa-chevron-right"></i>
+                    <i class="fas fa-chevron-right" style="color: #a8b5ff;"></i>
                 </div>
             `);
         });
         const upcomingAppointmentsElem = document.getElementById('upcomingAppointments');
         if (upcomingAppointmentsElem) upcomingAppointmentsElem.innerHTML = upcomingHtml.join('') || '<div class="text-center p-3 text-muted">No upcoming appointments</div>';
         
+        // ===== RECENT TASKS - CLICKABLE CARDS =====
+        const recentTasksQ = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'), limit(10));
+        const recentTasksSnapshot = await getDocs(recentTasksQ);
+        const tasksHtml = [];
+        recentTasksSnapshot.forEach(doc => {
+            const data = doc.data();
+            const priorityColor = data.priority === 'High' ? '#f44336' : data.priority === 'Medium' ? '#ff9800' : '#4caf50';
+            tasksHtml.push(`
+                <div class="task-card-mini glass-card-hover" onclick="showTaskDetail('${doc.id}')" style="cursor: pointer; border-left: 3px solid ${priorityColor};">
+                    <i class="fas fa-tasks" style="color: #a8b5ff;"></i>
+                    <div class="flex-grow-1">
+                        <strong>${data.title}</strong>
+                        <small class="d-block text-muted">Assigned to: ${data.assignedByName || 'Unassigned'} | Due: ${data.dueDate?.toDate().toLocaleDateString() || 'No date'}</small>
+                    </div>
+                    <span class="status-badge status-${data.status}">${data.status || 'pending'}</span>
+                    <i class="fas fa-chevron-right" style="color: #a8b5ff;"></i>
+                </div>
+            `);
+        });
+        
+        // ===== RECENT LEAVE REQUESTS - CLICKABLE CARDS =====
+        const leaveQ = query(collection(db, 'leave_requests'), orderBy('createdAt', 'desc'), limit(10));
+        const leaveSnapshot = await getDocs(leaveQ);
+        const leaveHtml = [];
+        leaveSnapshot.forEach(doc => {
+            const data = doc.data();
+            leaveHtml.push(`
+                <div class="leave-card-mini glass-card-hover" onclick="showLeaveDetail('${doc.id}')" style="cursor: pointer;">
+                    <i class="fas fa-umbrella-beach" style="color: #a8b5ff;"></i>
+                    <div class="flex-grow-1">
+                        <strong>${data.employeeName}</strong> - ${data.type}
+                        <small class="d-block text-muted">${data.startDate} to ${data.endDate} (${data.totalDays} days)</small>
+                    </div>
+                    <span class="status-badge status-${data.status}">${data.status || 'pending'}</span>
+                    <i class="fas fa-chevron-right" style="color: #a8b5ff;"></i>
+                </div>
+            `);
+        });
+        
+        // ===== RECENT EXPENSES - CLICKABLE CARDS =====
+        const expensesQ = query(collection(db, 'expenses'), orderBy('createdAt', 'desc'), limit(10));
+        const expensesSnapshot = await getDocs(expensesQ);
+        const expensesHtml = [];
+        expensesSnapshot.forEach(doc => {
+            const data = doc.data();
+            expensesHtml.push(`
+                <div class="expense-card-mini glass-card-hover" onclick="showExpenseDetail('${doc.id}')" style="cursor: pointer;">
+                    <i class="fas fa-receipt" style="color: #a8b5ff;"></i>
+                    <div class="flex-grow-1">
+                        <strong>${data.employeeName}</strong> - ${data.category}
+                        <small class="d-block text-muted">$${data.amount} - ${data.date}</small>
+                    </div>
+                    <span class="status-badge status-${data.status}">${data.status || 'pending'}</span>
+                    <i class="fas fa-chevron-right" style="color: #a8b5ff;"></i>
+                </div>
+            `);
+        });
+        
+        // Update the dashboard with new sections
+        const dashboardSection = document.getElementById('dashboardSection');
+        if (dashboardSection) {
+            // Find or create the row for the new cards
+            let additionalRow = dashboardSection.querySelector('.additional-dashboard-row');
+            if (!additionalRow) {
+                additionalRow = document.createElement('div');
+                additionalRow.className = 'row mt-4 additional-dashboard-row';
+                dashboardSection.appendChild(additionalRow);
+            }
+            
+            additionalRow.innerHTML = `
+                <div class="col-md-4">
+                    <div class="glass-card-inner">
+                        <div class="card-header-glass"><i class="fas fa-tasks"></i> Recent Tasks <button class="btn-glass-primary btn-sm float-end" onclick="showAddTaskModal()">+ New Task</button></div>
+                        <div id="recentTasksList">${tasksHtml.join('') || '<div class="text-center p-3 text-muted">No tasks found</div>'}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="glass-card-inner">
+                        <div class="card-header-glass"><i class="fas fa-umbrella-beach"></i> Recent Leave Requests</div>
+                        <div id="recentLeaveList">${leaveHtml.join('') || '<div class="text-center p-3 text-muted">No leave requests</div>'}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="glass-card-inner">
+                        <div class="card-header-glass"><i class="fas fa-receipt"></i> Recent Expenses</div>
+                        <div id="recentExpensesList">${expensesHtml.join('') || '<div class="text-center p-3 text-muted">No expenses submitted</div>'}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
     } catch (error) {
         console.error('Error loading dashboard:', error);
     }
 }
 
-// Detail View Functions
+// ===== LEAVE DETAIL VIEW =====
+window.showLeaveDetail = async function(leaveId) {
+    const leaveDoc = await getDoc(doc(db, 'leave_requests', leaveId));
+    if (!leaveDoc.exists()) return;
+    const leave = leaveDoc.data();
+    
+    Swal.fire({
+        title: `${leave.employeeName}'s Leave Request`,
+        html: `
+            <div class="text-start">
+                <p><strong>Type:</strong> ${leave.type}</p>
+                <p><strong>Dates:</strong> ${leave.startDate} to ${leave.endDate}</p>
+                <p><strong>Total Days:</strong> ${leave.totalDays} days</p>
+                <p><strong>Reason:</strong><br>${leave.reason || 'No reason provided'}</p>
+                <p><strong>Status:</strong> <span class="badge bg-${leave.status === 'approved' ? 'success' : leave.status === 'rejected' ? 'danger' : 'warning'}">${leave.status}</span></p>
+                <p><strong>Requested On:</strong> ${leave.createdAt?.toDate().toLocaleString()}</p>
+            </div>
+        `,
+        icon: 'info',
+        confirmButtonColor: '#6c63ff',
+        background: '#000',
+        backdrop: 'rgba(0,0,0,0.9)'
+    });
+};
+
+// ===== EXPENSE DETAIL VIEW =====
+window.showExpenseDetail = async function(expenseId) {
+    const expenseDoc = await getDoc(doc(db, 'expenses', expenseId));
+    if (!expenseDoc.exists()) return;
+    const expense = expenseDoc.data();
+    
+    Swal.fire({
+        title: `${expense.employeeName}'s Expense`,
+        html: `
+            <div class="text-start">
+                <p><strong>Category:</strong> ${expense.category}</p>
+                <p><strong>Amount:</strong> $${expense.amount}</p>
+                <p><strong>Date:</strong> ${expense.date}</p>
+                <p><strong>Description:</strong><br>${expense.description || 'No description'}</p>
+                <p><strong>Status:</strong> <span class="badge bg-${expense.status === 'approved' ? 'success' : expense.status === 'rejected' ? 'danger' : 'warning'}">${expense.status}</span></p>
+                ${expense.receiptUrl ? `<p><strong>Receipt:</strong> <a href="${expense.receiptUrl}" target="_blank" style="color: #6c63ff;">View Receipt</a></p>` : ''}
+            </div>
+        `,
+        icon: 'info',
+        confirmButtonColor: '#6c63ff',
+        background: '#000',
+        backdrop: 'rgba(0,0,0,0.9)'
+    });
+};
+
+// ===== UPDATED TASK MODAL WITH ASSIGNEE SELECTION =====
+window.showAddTaskModal = async function() {
+    // Load employees for assignee dropdown
+    const employeesSnapshot = await getDocs(collection(db, 'employees'));
+    const employees = [];
+    employeesSnapshot.forEach(doc => {
+        const emp = doc.data();
+        employees.push({ id: doc.id, name: emp.fullName });
+    });
+    
+    const employeeOptions = employees.map(emp => `<option value="${emp.id}">${emp.name}</option>`).join('');
+    
+    Swal.fire({
+        title: 'Create New Task',
+        html: `
+            <input type="text" id="taskTitle" class="swal2-input" placeholder="Task Title">
+            <textarea id="taskDescription" class="swal2-textarea" placeholder="Task Description" rows="3"></textarea>
+            <select id="taskAssignee" class="swal2-select">
+                <option value="">Select Assignee</option>
+                ${employeeOptions}
+            </select>
+            <select id="taskPriority" class="swal2-select">
+                <option value="Low">Low Priority</option>
+                <option value="Medium" selected>Medium Priority</option>
+                <option value="High">High Priority</option>
+                <option value="Urgent">Urgent</option>
+            </select>
+            <input type="date" id="taskDueDate" class="swal2-input" value="${new Date().toISOString().split('T')[0]}">
+        `,
+        confirmButtonText: 'Create Task',
+        showCancelButton: true,
+        background: '#000',
+        confirmButtonColor: '#6c63ff',
+        preConfirm: async () => {
+            const title = Swal.getPopup().querySelector('#taskTitle').value;
+            const description = Swal.getPopup().querySelector('#taskDescription').value;
+            const assigneeId = Swal.getPopup().querySelector('#taskAssignee').value;
+            const priority = Swal.getPopup().querySelector('#taskPriority').value;
+            const dueDate = Swal.getPopup().querySelector('#taskDueDate').value;
+            
+            if (!title) {
+                Swal.showValidationMessage('Please enter a task title');
+                return false;
+            }
+            
+            let assigneeName = 'Unassigned';
+            if (assigneeId) {
+                const assigneeDoc = await getDoc(doc(db, 'employees', assigneeId));
+                assigneeName = assigneeDoc.data()?.fullName || 'Unknown';
+            }
+            
+            await addDoc(collection(db, 'tasks'), {
+                title: title,
+                description: description,
+                priority: priority,
+                dueDate: dueDate ? Timestamp.fromDate(new Date(dueDate)) : null,
+                assignedTo: assigneeId || null,
+                assignedByName: assigneeName,
+                createdByName: currentEmployee.fullName,
+                status: 'pending',
+                createdAt: Timestamp.now()
+            });
+            
+            return true;
+        }
+    }).then(() => {
+        loadTasks();
+        loadDashboardData();
+        Swal.fire({ title: 'Success', text: 'Task created successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+    });
+};
+
+// ===== DETAIL VIEW FUNCTIONS =====
 window.showTaskDetail = async function(taskId) {
     const taskDoc = await getDoc(doc(db, 'tasks', taskId));
     if (!taskDoc.exists()) return;
@@ -420,16 +634,23 @@ window.showTaskDetail = async function(taskId) {
                 <p><strong>Description:</strong><br>${task.description || 'No description'}</p>
                 <p><strong>Priority:</strong> <span class="badge bg-${task.priority === 'High' ? 'danger' : task.priority === 'Medium' ? 'warning' : 'info'}">${task.priority || 'Medium'}</span></p>
                 <p><strong>Status:</strong> <span class="badge bg-${task.status === 'completed' ? 'success' : 'warning'}">${task.status || 'pending'}</span></p>
-                <p><strong>Assigned To:</strong> ${task.assignedByName || 'Unknown'}</p>
+                <p><strong>Assigned To:</strong> ${task.assignedByName || 'Unassigned'}</p>
                 <p><strong>Due Date:</strong> ${task.dueDate?.toDate().toLocaleDateString() || 'No date'}</p>
-                <p><strong>Created By:</strong> ${task.createdByName || task.assignedByName}</p>
+                <p><strong>Created By:</strong> ${task.createdByName || 'Unknown'}</p>
                 <p><strong>Created At:</strong> ${task.createdAt?.toDate().toLocaleString()}</p>
             </div>
         `,
         icon: 'info',
         confirmButtonColor: '#6c63ff',
-        background: 'rgba(0,0,0,0.9)',
-        backdrop: 'rgba(0,0,0,0.8)'
+        background: '#000',
+        backdrop: 'rgba(0,0,0,0.9)',
+        showDenyButton: task.status !== 'completed',
+        denyButtonText: 'Mark Complete',
+        denyButtonColor: '#4caf50'
+    }).then((result) => {
+        if (result.isDenied) {
+            updateTaskStatus(taskId, 'completed');
+        }
     });
 };
 
@@ -453,8 +674,8 @@ window.showAppointmentDetail = async function(appointmentId) {
         `,
         icon: 'info',
         confirmButtonColor: '#6c63ff',
-        background: 'rgba(0,0,0,0.9)',
-        backdrop: 'rgba(0,0,0,0.8)'
+        background: '#000',
+        backdrop: 'rgba(0,0,0,0.9)'
     });
 };
 
@@ -475,7 +696,7 @@ window.showAnnouncementDetail = async function(announcementId) {
         `,
         icon: 'info',
         confirmButtonColor: '#6c63ff',
-        background: 'rgba(0,0,0,0.9)',
+        background: '#000',
         backdrop: 'rgba(0,0,0,0.8)'
     });
     
@@ -506,11 +727,12 @@ window.showAttendanceDetail = async function(attendanceId) {
         `,
         icon: 'info',
         confirmButtonColor: '#6c63ff',
-        background: 'rgba(0,0,0,0.9)',
+        background: '#000',
         backdrop: 'rgba(0,0,0,0.8)'
     });
 };
 
+// ===== LOAD FUNCTIONS =====
 async function loadAttendanceHistory() {
     try {
         const q = query(collection(db, 'attendance'), orderBy('date', 'desc'), limit(30));
@@ -611,7 +833,7 @@ async function loadTasks() {
                     <p class="small text-muted mt-2">${data.description || ''}</p>
                     <div class="d-flex justify-content-between align-items-center mt-2">
                         <small><i class="far fa-calendar-alt"></i> Due: ${data.dueDate?.toDate().toLocaleDateString() || 'No date'}</small>
-                        <small><i class="fas fa-user"></i> Created by: ${data.createdByName || data.assignedByName}</small>
+                        <small><i class="fas fa-user"></i> Assigned to: ${data.assignedByName || 'Unassigned'}</small>
                     </div>
                 </div>
             `;
@@ -805,14 +1027,7 @@ async function loadAnnouncements() {
     }
 }
 
-// Modal Functions
-window.showAddAppointmentModal = function() {
-    const dateTimeInput = document.getElementById('appointmentDateTime');
-    if (dateTimeInput) dateTimeInput.value = new Date().toISOString().slice(0, 16);
-    const modal = new bootstrap.Modal(document.getElementById('appointmentModal'));
-    modal.show();
-};
-
+// ===== CREATE FUNCTIONS =====
 window.createAppointment = async function() {
     const title = document.getElementById('appointmentTitle').value;
     const type = document.getElementById('appointmentType').value;
@@ -821,7 +1036,7 @@ window.createAppointment = async function() {
     const location = document.getElementById('appointmentLocation').value;
     const description = document.getElementById('appointmentDescription').value;
     
-    if (!title || !dateTime) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: 'rgba(0,0,0,0.9)' }); return; }
+    if (!title || !dateTime) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: '#000', confirmButtonColor: '#6c63ff' }); return; }
     
     await addDoc(collection(db, 'appointments'), {
         title: title,
@@ -840,16 +1055,9 @@ window.createAppointment = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('appointmentModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Appointment scheduled successfully', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
+    Swal.fire({ title: 'Success', text: 'Appointment scheduled successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
     await loadAppointments();
     await loadDashboardData();
-};
-
-window.showAddTaskModal = function() {
-    const dueDateInput = document.getElementById('taskDueDate');
-    if (dueDateInput) dueDateInput.value = new Date().toISOString().split('T')[0];
-    const modal = new bootstrap.Modal(document.getElementById('taskModal'));
-    modal.show();
 };
 
 window.createTask = async function() {
@@ -858,7 +1066,7 @@ window.createTask = async function() {
     const dueDate = document.getElementById('taskDueDate').value;
     const description = document.getElementById('taskDescription').value;
     
-    if (!title || !dueDate) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: 'rgba(0,0,0,0.9)' }); return; }
+    if (!title || !dueDate) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: '#000', confirmButtonColor: '#6c63ff' }); return; }
     
     await addDoc(collection(db, 'tasks'), {
         title: title,
@@ -873,9 +1081,16 @@ window.createTask = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Task created successfully', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
+    Swal.fire({ title: 'Success', text: 'Task created successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
     await loadTasks();
     await loadDashboardData();
+};
+
+window.showAddAppointmentModal = function() {
+    const dateTimeInput = document.getElementById('appointmentDateTime');
+    if (dateTimeInput) dateTimeInput.value = new Date().toISOString().slice(0, 16);
+    const modal = new bootstrap.Modal(document.getElementById('appointmentModal'));
+    modal.show();
 };
 
 window.showLeaveRequestModal = function() {
@@ -893,7 +1108,7 @@ window.submitLeaveRequest = async function() {
     const endDate = document.getElementById('leaveEnd').value;
     const reason = document.getElementById('leaveReason').value;
     
-    if (!startDate || !endDate) { Swal.fire({ title: 'Error', text: 'Please select dates', icon: 'error', background: 'rgba(0,0,0,0.9)' }); return; }
+    if (!startDate || !endDate) { Swal.fire({ title: 'Error', text: 'Please select dates', icon: 'error', background: '#000', confirmButtonColor: '#6c63ff' }); return; }
     
     const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
     
@@ -911,7 +1126,7 @@ window.submitLeaveRequest = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('leaveModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Leave request submitted successfully', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
+    Swal.fire({ title: 'Success', text: 'Leave request submitted successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
     await loadLeaveRequests();
 };
 
@@ -929,7 +1144,7 @@ window.submitExpense = async function() {
     const description = document.getElementById('expenseDescription').value;
     const receiptFile = document.getElementById('receiptImage').files[0];
     
-    if (!category || !amount || !date) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: 'rgba(0,0,0,0.9)' }); return; }
+    if (!category || !amount || !date) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: '#000', confirmButtonColor: '#6c63ff' }); return; }
     
     let receiptUrl = '';
     if (receiptFile) {
@@ -952,13 +1167,13 @@ window.submitExpense = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Expense submitted successfully', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
+    Swal.fire({ title: 'Success', text: 'Expense submitted successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
     await loadExpenses();
 };
 
 window.updateTaskStatus = async function(taskId, status) {
     await updateDoc(doc(db, 'tasks', taskId), { status: status, completedAt: status === 'completed' ? Timestamp.now() : null });
-    Swal.fire({ title: 'Success', text: 'Task updated', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
+    Swal.fire({ title: 'Success', text: 'Task updated', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
     await loadTasks();
     await loadDashboardData();
 };
@@ -975,7 +1190,7 @@ window.showAddDocumentModal = function() {
         `,
         confirmButtonText: 'Upload',
         showCancelButton: true,
-        background: 'rgba(0,0,0,0.9)',
+        background: '#000',
         confirmButtonColor: '#6c63ff',
         preConfirm: async () => {
             const title = Swal.getPopup().querySelector('#docTitle').value;
@@ -1007,7 +1222,7 @@ window.showAddAnnouncementModal = function() {
         `,
         confirmButtonText: 'Post',
         showCancelButton: true,
-        background: 'rgba(0,0,0,0.9)',
+        background: '#000',
         confirmButtonColor: '#6c63ff',
         preConfirm: async () => {
             const title = Swal.getPopup().querySelector('#announceTitle').value;
@@ -1036,7 +1251,7 @@ window.showAddReviewModal = function() {
             return options;
         },
         showCancelButton: true,
-        background: 'rgba(0,0,0,0.9)',
+        background: '#000',
         confirmButtonColor: '#6c63ff',
         preConfirm: (employeeId) => {
             if (!employeeId) { Swal.showValidationMessage('Please select an employee'); return false; }
@@ -1057,7 +1272,7 @@ function showReviewForm(employeeId) {
         `,
         confirmButtonText: 'Submit Review',
         showCancelButton: true,
-        background: 'rgba(0,0,0,0.9)',
+        background: '#000',
         confirmButtonColor: '#6c63ff',
         preConfirm: async () => {
             const rating = parseInt(Swal.getPopup().querySelector('#reviewRating').value);
