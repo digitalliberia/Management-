@@ -3,16 +3,17 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, si
 import { getFirestore, collection, addDoc, getDocs, query, where, updateDoc, deleteDoc, doc, Timestamp, orderBy, limit, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-// Create a NEW Firebase project for HR system - REPLACE WITH YOUR HR PROJECT CONFIG
+// Firebase configuration for HR Management System
 const firebaseConfig = {
-    apiKey: "AIzaSyBBdSHo-itRn-5A9t9v-3-dxVDNqHNNW4A",
-    authDomain: "music-platform-dl.firebaseapp.com",
-    projectId: "music-platform-dl",
-    storageBucket: "music-platform-dl.firebasestorage.app",
-    messagingSenderId: "1054189036079",
-    appId: "1:1054189036079:web:235b2b4845d8df76879cda"
+    apiKey: "AIzaSyCrtORDMSIkydaVxSRD51ZHhns7Tkm_A9s",
+    authDomain: "management-dl.firebaseapp.com",
+    projectId: "management-dl",
+    storageBucket: "management-dl.firebasestorage.app",
+    messagingSenderId: "956539945429",
+    appId: "1:956539945429:web:7d747bf40c6754562b3d5c"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
@@ -35,6 +36,12 @@ window.orderBy = orderBy;
 window.limit = limit;
 window.getDoc = getDoc;
 window.ref = ref;
+window.uploadBytes = uploadBytes;
+window.getDownloadURL = getDownloadURL;
+window.signOut = signOut;
+
+// Export additional auth methods for convenience
+export { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut };window.ref = ref;
 window.uploadBytes = uploadBytes;
 window.getDownloadURL = getDownloadURL;
 window.signOut = signOut;
