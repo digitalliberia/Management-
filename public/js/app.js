@@ -44,23 +44,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (adminMenu) {
             if (isAdmin) {
                 adminMenu.style.display = 'block';
-                console.log('Admin menu enabled');
+                console.log('Admin menu enabled in sidebar');
             } else {
                 adminMenu.style.display = 'none';
             }
         }
         
-        // Also show a direct admin button in the navbar area
-        let adminNavBtn = document.getElementById('adminNavBtn');
-        if (!adminNavBtn) {
-            const navbarDiv = document.querySelector('.ms-auto.d-flex');
-            if (navbarDiv && isAdmin) {
-                const btn = document.createElement('button');
-                btn.id = 'adminNavBtn';
-                btn.className = 'btn-glass-primary me-2';
-                btn.innerHTML = '<i class="fas fa-user-shield"></i> Admin';
-                btn.onclick = () => window.location.href = 'admin.html';
-                navbarDiv.insertBefore(btn, navbarDiv.firstChild);
+        // Show the admin button in navbar
+        const adminNavBtn = document.getElementById('adminNavBtn');
+        if (adminNavBtn) {
+            if (isAdmin) {
+                adminNavBtn.style.display = 'inline-block';
+                console.log('Admin button enabled in navbar');
+            } else {
+                adminNavBtn.style.display = 'none';
             }
         }
         
@@ -354,7 +351,7 @@ async function updateAttendanceButton() {
     }
 }
 
-// ========== UPDATED DASHBOARD WITH CLICKABLE CARDS FOR ALL SECTIONS ==========
+// ========== DASHBOARD WITH CLICKABLE CARDS ==========
 async function loadDashboardData() {
     try {
         const today = new Date().toISOString().split('T')[0];
@@ -430,7 +427,7 @@ async function loadDashboardData() {
         const upcomingAppointmentsElem = document.getElementById('upcomingAppointments');
         if (upcomingAppointmentsElem) upcomingAppointmentsElem.innerHTML = upcomingHtml.join('') || '<div class="text-center p-3 text-muted">No upcoming appointments</div>';
         
-        // ===== RECENT TASKS - CLICKABLE CARDS =====
+        // Recent Tasks - clickable cards
         const recentTasksQ = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'), limit(10));
         const recentTasksSnapshot = await getDocs(recentTasksQ);
         const tasksHtml = [];
@@ -450,7 +447,7 @@ async function loadDashboardData() {
             `);
         });
         
-        // ===== RECENT LEAVE REQUESTS - CLICKABLE CARDS =====
+        // Recent Leave Requests - clickable cards
         const leaveQ = query(collection(db, 'leave_requests'), orderBy('createdAt', 'desc'), limit(10));
         const leaveSnapshot = await getDocs(leaveQ);
         const leaveHtml = [];
@@ -469,7 +466,7 @@ async function loadDashboardData() {
             `);
         });
         
-        // ===== RECENT EXPENSES - CLICKABLE CARDS =====
+        // Recent Expenses - clickable cards
         const expensesQ = query(collection(db, 'expenses'), orderBy('createdAt', 'desc'), limit(10));
         const expensesSnapshot = await getDocs(expensesQ);
         const expensesHtml = [];
@@ -491,7 +488,6 @@ async function loadDashboardData() {
         // Update the dashboard with new sections
         const dashboardSection = document.getElementById('dashboardSection');
         if (dashboardSection) {
-            // Find or create the row for the new cards
             let additionalRow = dashboardSection.querySelector('.additional-dashboard-row');
             if (!additionalRow) {
                 additionalRow = document.createElement('div');
@@ -525,128 +521,6 @@ async function loadDashboardData() {
         console.error('Error loading dashboard:', error);
     }
 }
-
-// ===== LEAVE DETAIL VIEW =====
-window.showLeaveDetail = async function(leaveId) {
-    const leaveDoc = await getDoc(doc(db, 'leave_requests', leaveId));
-    if (!leaveDoc.exists()) return;
-    const leave = leaveDoc.data();
-    
-    Swal.fire({
-        title: `${leave.employeeName}'s Leave Request`,
-        html: `
-            <div class="text-start">
-                <p><strong>Type:</strong> ${leave.type}</p>
-                <p><strong>Dates:</strong> ${leave.startDate} to ${leave.endDate}</p>
-                <p><strong>Total Days:</strong> ${leave.totalDays} days</p>
-                <p><strong>Reason:</strong><br>${leave.reason || 'No reason provided'}</p>
-                <p><strong>Status:</strong> <span class="badge bg-${leave.status === 'approved' ? 'success' : leave.status === 'rejected' ? 'danger' : 'warning'}">${leave.status}</span></p>
-                <p><strong>Requested On:</strong> ${leave.createdAt?.toDate().toLocaleString()}</p>
-            </div>
-        `,
-        icon: 'info',
-        confirmButtonColor: '#6c63ff',
-        background: '#000',
-        backdrop: 'rgba(0,0,0,0.9)'
-    });
-};
-
-// ===== EXPENSE DETAIL VIEW =====
-window.showExpenseDetail = async function(expenseId) {
-    const expenseDoc = await getDoc(doc(db, 'expenses', expenseId));
-    if (!expenseDoc.exists()) return;
-    const expense = expenseDoc.data();
-    
-    Swal.fire({
-        title: `${expense.employeeName}'s Expense`,
-        html: `
-            <div class="text-start">
-                <p><strong>Category:</strong> ${expense.category}</p>
-                <p><strong>Amount:</strong> $${expense.amount}</p>
-                <p><strong>Date:</strong> ${expense.date}</p>
-                <p><strong>Description:</strong><br>${expense.description || 'No description'}</p>
-                <p><strong>Status:</strong> <span class="badge bg-${expense.status === 'approved' ? 'success' : expense.status === 'rejected' ? 'danger' : 'warning'}">${expense.status}</span></p>
-                ${expense.receiptUrl ? `<p><strong>Receipt:</strong> <a href="${expense.receiptUrl}" target="_blank" style="color: #6c63ff;">View Receipt</a></p>` : ''}
-            </div>
-        `,
-        icon: 'info',
-        confirmButtonColor: '#6c63ff',
-        background: '#000',
-        backdrop: 'rgba(0,0,0,0.9)'
-    });
-};
-
-// ===== UPDATED TASK MODAL WITH ASSIGNEE SELECTION =====
-window.showAddTaskModal = async function() {
-    // Load employees for assignee dropdown
-    const employeesSnapshot = await getDocs(collection(db, 'employees'));
-    const employees = [];
-    employeesSnapshot.forEach(doc => {
-        const emp = doc.data();
-        employees.push({ id: doc.id, name: emp.fullName });
-    });
-    
-    const employeeOptions = employees.map(emp => `<option value="${emp.id}">${emp.name}</option>`).join('');
-    
-    Swal.fire({
-        title: 'Create New Task',
-        html: `
-            <input type="text" id="taskTitle" class="swal2-input" placeholder="Task Title">
-            <textarea id="taskDescription" class="swal2-textarea" placeholder="Task Description" rows="3"></textarea>
-            <select id="taskAssignee" class="swal2-select">
-                <option value="">Select Assignee</option>
-                ${employeeOptions}
-            </select>
-            <select id="taskPriority" class="swal2-select">
-                <option value="Low">Low Priority</option>
-                <option value="Medium" selected>Medium Priority</option>
-                <option value="High">High Priority</option>
-                <option value="Urgent">Urgent</option>
-            </select>
-            <input type="date" id="taskDueDate" class="swal2-input" value="${new Date().toISOString().split('T')[0]}">
-        `,
-        confirmButtonText: 'Create Task',
-        showCancelButton: true,
-        background: '#000',
-        confirmButtonColor: '#6c63ff',
-        preConfirm: async () => {
-            const title = Swal.getPopup().querySelector('#taskTitle').value;
-            const description = Swal.getPopup().querySelector('#taskDescription').value;
-            const assigneeId = Swal.getPopup().querySelector('#taskAssignee').value;
-            const priority = Swal.getPopup().querySelector('#taskPriority').value;
-            const dueDate = Swal.getPopup().querySelector('#taskDueDate').value;
-            
-            if (!title) {
-                Swal.showValidationMessage('Please enter a task title');
-                return false;
-            }
-            
-            let assigneeName = 'Unassigned';
-            if (assigneeId) {
-                const assigneeDoc = await getDoc(doc(db, 'employees', assigneeId));
-                assigneeName = assigneeDoc.data()?.fullName || 'Unknown';
-            }
-            
-            await addDoc(collection(db, 'tasks'), {
-                title: title,
-                description: description,
-                priority: priority,
-                dueDate: dueDate ? Timestamp.fromDate(new Date(dueDate)) : null,
-                assignedTo: assigneeId || null,
-                assignedByName: assigneeName,
-                createdByName: currentEmployee.fullName,
-                status: 'pending',
-                createdAt: Timestamp.now()
-            });
-            
-            return true;
-        }
-    }).then(() => {
-        loadTasks();
-        loadDashboardData();
-        Swal.fire({ title: 'Success', text: 'Task created successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
-    });
-};
 
 // ===== DETAIL VIEW FUNCTIONS =====
 window.showTaskDetail = async function(taskId) {
@@ -756,6 +630,54 @@ window.showAttendanceDetail = async function(attendanceId) {
         confirmButtonColor: '#6c63ff',
         background: '#000',
         backdrop: 'rgba(0,0,0,0.8)'
+    });
+};
+
+window.showLeaveDetail = async function(leaveId) {
+    const leaveDoc = await getDoc(doc(db, 'leave_requests', leaveId));
+    if (!leaveDoc.exists()) return;
+    const leave = leaveDoc.data();
+    
+    Swal.fire({
+        title: `${leave.employeeName}'s Leave Request`,
+        html: `
+            <div class="text-start">
+                <p><strong>Type:</strong> ${leave.type}</p>
+                <p><strong>Dates:</strong> ${leave.startDate} to ${leave.endDate}</p>
+                <p><strong>Total Days:</strong> ${leave.totalDays} days</p>
+                <p><strong>Reason:</strong><br>${leave.reason || 'No reason provided'}</p>
+                <p><strong>Status:</strong> <span class="badge bg-${leave.status === 'approved' ? 'success' : leave.status === 'rejected' ? 'danger' : 'warning'}">${leave.status}</span></p>
+                <p><strong>Requested On:</strong> ${leave.createdAt?.toDate().toLocaleString()}</p>
+            </div>
+        `,
+        icon: 'info',
+        confirmButtonColor: '#6c63ff',
+        background: '#000',
+        backdrop: 'rgba(0,0,0,0.9)'
+    });
+};
+
+window.showExpenseDetail = async function(expenseId) {
+    const expenseDoc = await getDoc(doc(db, 'expenses', expenseId));
+    if (!expenseDoc.exists()) return;
+    const expense = expenseDoc.data();
+    
+    Swal.fire({
+        title: `${expense.employeeName}'s Expense`,
+        html: `
+            <div class="text-start">
+                <p><strong>Category:</strong> ${expense.category}</p>
+                <p><strong>Amount:</strong> $${expense.amount}</p>
+                <p><strong>Date:</strong> ${expense.date}</p>
+                <p><strong>Description:</strong><br>${expense.description || 'No description'}</p>
+                <p><strong>Status:</strong> <span class="badge bg-${expense.status === 'approved' ? 'success' : expense.status === 'rejected' ? 'danger' : 'warning'}">${expense.status}</span></p>
+                ${expense.receiptUrl ? `<p><strong>Receipt:</strong> <a href="${expense.receiptUrl}" target="_blank" style="color: #6c63ff;">View Receipt</a></p>` : ''}
+            </div>
+        `,
+        icon: 'info',
+        confirmButtonColor: '#6c63ff',
+        background: '#000',
+        backdrop: 'rgba(0,0,0,0.9)'
     });
 };
 
@@ -914,7 +836,7 @@ async function loadExpenses() {
         const snapshot = await getDocs(q);
         const container = document.getElementById('expensesList');
         if (!container) return;
-        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody><table></div>';
+        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></table></thead><tbody></tbody></table></div>';
         const tbody = container.querySelector('tbody');
         
         snapshot.forEach(doc => {
@@ -1055,6 +977,83 @@ async function loadAnnouncements() {
 }
 
 // ===== CREATE FUNCTIONS =====
+window.showAddTaskModal = async function() {
+    const employeesSnapshot = await getDocs(collection(db, 'employees'));
+    const employees = [];
+    employeesSnapshot.forEach(doc => {
+        const emp = doc.data();
+        employees.push({ id: doc.id, name: emp.fullName });
+    });
+    
+    const employeeOptions = employees.map(emp => `<option value="${emp.id}">${emp.name}</option>`).join('');
+    
+    Swal.fire({
+        title: 'Create New Task',
+        html: `
+            <input type="text" id="taskTitle" class="swal2-input" placeholder="Task Title">
+            <textarea id="taskDescription" class="swal2-textarea" placeholder="Task Description" rows="3"></textarea>
+            <select id="taskAssignee" class="swal2-select">
+                <option value="">Select Assignee</option>
+                ${employeeOptions}
+            </select>
+            <select id="taskPriority" class="swal2-select">
+                <option value="Low">Low Priority</option>
+                <option value="Medium" selected>Medium Priority</option>
+                <option value="High">High Priority</option>
+                <option value="Urgent">Urgent</option>
+            </select>
+            <input type="date" id="taskDueDate" class="swal2-input" value="${new Date().toISOString().split('T')[0]}">
+        `,
+        confirmButtonText: 'Create Task',
+        showCancelButton: true,
+        background: '#000',
+        confirmButtonColor: '#6c63ff',
+        preConfirm: async () => {
+            const title = Swal.getPopup().querySelector('#taskTitle').value;
+            const description = Swal.getPopup().querySelector('#taskDescription').value;
+            const assigneeId = Swal.getPopup().querySelector('#taskAssignee').value;
+            const priority = Swal.getPopup().querySelector('#taskPriority').value;
+            const dueDate = Swal.getPopup().querySelector('#taskDueDate').value;
+            
+            if (!title) {
+                Swal.showValidationMessage('Please enter a task title');
+                return false;
+            }
+            
+            let assigneeName = 'Unassigned';
+            if (assigneeId) {
+                const assigneeDoc = await getDoc(doc(db, 'employees', assigneeId));
+                assigneeName = assigneeDoc.data()?.fullName || 'Unknown';
+            }
+            
+            await addDoc(collection(db, 'tasks'), {
+                title: title,
+                description: description,
+                priority: priority,
+                dueDate: dueDate ? Timestamp.fromDate(new Date(dueDate)) : null,
+                assignedTo: assigneeId || null,
+                assignedByName: assigneeName,
+                createdByName: currentEmployee.fullName,
+                status: 'pending',
+                createdAt: Timestamp.now()
+            });
+            
+            return true;
+        }
+    }).then(() => {
+        loadTasks();
+        loadDashboardData();
+        Swal.fire({ title: 'Success', text: 'Task created successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+    });
+};
+
+window.showAddAppointmentModal = function() {
+    const dateTimeInput = document.getElementById('appointmentDateTime');
+    if (dateTimeInput) dateTimeInput.value = new Date().toISOString().slice(0, 16);
+    const modal = new bootstrap.Modal(document.getElementById('appointmentModal'));
+    modal.show();
+};
+
 window.createAppointment = async function() {
     const title = document.getElementById('appointmentTitle').value;
     const type = document.getElementById('appointmentType').value;
@@ -1085,39 +1084,6 @@ window.createAppointment = async function() {
     Swal.fire({ title: 'Success', text: 'Appointment scheduled successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
     await loadAppointments();
     await loadDashboardData();
-};
-
-window.createTask = async function() {
-    const title = document.getElementById('taskTitle').value;
-    const priority = document.getElementById('taskPriority').value;
-    const dueDate = document.getElementById('taskDueDate').value;
-    const description = document.getElementById('taskDescription').value;
-    
-    if (!title || !dueDate) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: '#000', confirmButtonColor: '#6c63ff' }); return; }
-    
-    await addDoc(collection(db, 'tasks'), {
-        title: title,
-        priority: priority,
-        dueDate: Timestamp.fromDate(new Date(dueDate)),
-        description: description,
-        assignedTo: currentEmployee.id,
-        assignedByName: currentEmployee.fullName,
-        createdByName: currentEmployee.fullName,
-        status: 'pending',
-        createdAt: Timestamp.now()
-    });
-    
-    bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Task created successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
-    await loadTasks();
-    await loadDashboardData();
-};
-
-window.showAddAppointmentModal = function() {
-    const dateTimeInput = document.getElementById('appointmentDateTime');
-    if (dateTimeInput) dateTimeInput.value = new Date().toISOString().slice(0, 16);
-    const modal = new bootstrap.Modal(document.getElementById('appointmentModal'));
-    modal.show();
 };
 
 window.showLeaveRequestModal = function() {
@@ -1352,12 +1318,3 @@ if (typeof Swal === 'undefined') {
     swalScript.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
     document.head.appendChild(swalScript);
 }
-
-// Force show admin menu if role is super admin (fallback)
-setTimeout(() => {
-    if (currentEmployee && (currentEmployee.role === 'super admin' || currentEmployee.role === 'admin')) {
-        const adminMenu = document.getElementById('adminMenu');
-        if (adminMenu) adminMenu.style.display = 'block';
-        console.log('Admin menu force shown for:', currentEmployee.role);
-    }
-}, 1000);
