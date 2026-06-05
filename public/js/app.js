@@ -50,9 +50,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         initSignaturePad();
         updateAttendanceButton();
         
-        // Setup real-time listeners
-        setupRealtimeListeners();
-        
     } catch (error) {
         console.error('Error loading user:', error);
         localStorage.removeItem('currentUser');
@@ -60,31 +57,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-function setupRealtimeListeners() {
-    // Listen for new tasks
-    const tasksQuery = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'));
-    const unsubscribeTasks = onSnapshot(tasksQuery, (snapshot) => {
-        loadTasks(); // Refresh tasks when changed
-        loadDashboardData();
-    });
-    
-    // Listen for new appointments
-    const appointmentsQuery = query(collection(db, 'appointments'), orderBy('startTime', 'desc'));
-    const unsubscribeAppointments = onSnapshot(appointmentsQuery, (snapshot) => {
-        loadAppointments();
-        loadDashboardData();
-    });
-    
-    // Listen for new announcements
-    const announcementsQuery = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
-    const unsubscribeAnnouncements = onSnapshot(announcementsQuery, (snapshot) => {
-        loadAnnouncements();
-        loadDashboardData();
-    });
-}
-
 function showLoginModal() {
-    const modal = new bootstrap.Modal(document.getElementById('loginModal'));
+    const modalEl = document.getElementById('loginModal');
+    const modal = new bootstrap.Modal(modalEl);
     modal.show();
 }
 
@@ -239,15 +214,15 @@ window.getLocation = function() {
                 if (locationDisplay) {
                     locationDisplay.value = `Lat: ${window.currentLocation.lat.toFixed(6)}, Lng: ${window.currentLocation.lng.toFixed(6)}`;
                 }
-                showToast('Location captured successfully', 'success');
+                Swal.fire({ title: 'Success', text: 'Location captured successfully', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
             },
-            (error) => { showToast('Unable to get location: ' + error.message, 'error'); }
+            (error) => { Swal.fire({ title: 'Error', text: 'Unable to get location: ' + error.message, icon: 'error', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' }); }
         );
     }
 };
 
 window.checkIn = async function() {
-    if (!window.currentLocation) { showToast('Please capture your location first', 'error'); return; }
+    if (!window.currentLocation) { Swal.fire({ title: 'Error', text: 'Please capture your location first', icon: 'error', background: 'rgba(0,0,0,0.9)' }); return; }
     
     if (!canvas || !ctx) return;
     const imageData = canvas.toDataURL();
@@ -268,7 +243,8 @@ window.checkIn = async function() {
             createdAt: Timestamp.now()
         });
         
-        showToast('Checked in successfully!', 'success');
+        Swal.fire({ title: 'Success', text: 'Checked in successfully!', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
+        
         const checkInBtn = document.getElementById('checkInBtn');
         const checkOutBtn = document.getElementById('checkOutBtn');
         const statusDiv = document.getElementById('attendanceStatus');
@@ -280,7 +256,7 @@ window.checkIn = async function() {
         await loadAttendanceHistory();
         await loadDashboardData();
     } catch (error) {
-        showToast('Check-in failed: ' + error.message, 'error');
+        Swal.fire({ title: 'Error', text: 'Check-in failed: ' + error.message, icon: 'error', background: 'rgba(0,0,0,0.9)' });
     }
 };
 
@@ -300,7 +276,8 @@ window.checkOut = async function() {
                 updatedAt: Timestamp.now()
             });
             
-            showToast('Checked out successfully!', 'success');
+            Swal.fire({ title: 'Success', text: 'Checked out successfully!', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
+            
             const checkOutBtn = document.getElementById('checkOutBtn');
             const statusDiv = document.getElementById('attendanceStatus');
             
@@ -311,7 +288,7 @@ window.checkOut = async function() {
             await loadDashboardData();
         }
     } catch (error) {
-        showToast('Check-out failed: ' + error.message, 'error');
+        Swal.fire({ title: 'Error', text: 'Check-out failed: ' + error.message, icon: 'error', background: 'rgba(0,0,0,0.9)' });
     }
 };
 
@@ -368,29 +345,31 @@ async function loadDashboardData() {
         const todayHoursElem = document.getElementById('todayHours');
         if (todayHoursElem) todayHoursElem.textContent = hours.toFixed(1);
         
-        const tasksQ = query(collection(db, 'tasks'), where('status', 'in', ['pending', 'in_progress']));
+        const tasksQ = query(collection(db, 'tasks'));
         const tasksSnapshot = await getDocs(tasksQ);
+        const pendingCount = tasksSnapshot.docs.filter(d => d.data().status === 'pending' || d.data().status === 'in_progress').length;
         const pendingTasksElem = document.getElementById('pendingTasks');
-        if (pendingTasksElem) pendingTasksElem.textContent = tasksSnapshot.size;
+        if (pendingTasksElem) pendingTasksElem.textContent = pendingCount;
         
-        const appointmentsQ = query(collection(db, 'appointments'), where('startTime', '>=', Timestamp.now()));
+        const appointmentsQ = query(collection(db, 'appointments'));
         const appointmentsSnapshot = await getDocs(appointmentsQ);
         const todayAppointmentsElem = document.getElementById('todayAppointments');
         if (todayAppointmentsElem) todayAppointmentsElem.textContent = appointmentsSnapshot.size;
         
-        const announcementsQ = query(collection(db, 'announcements'), where('readBy', 'not-array-contains', currentEmployee.id));
+        const announcementsQ = query(collection(db, 'announcements'));
         const announcementsSnapshot = await getDocs(announcementsQ);
+        const unreadCount = announcementsSnapshot.docs.filter(d => !(d.data().readBy || []).includes(currentEmployee.id)).length;
         const unreadAnnouncementsElem = document.getElementById('unreadAnnouncements');
-        if (unreadAnnouncementsElem) unreadAnnouncementsElem.textContent = announcementsSnapshot.size;
+        if (unreadAnnouncementsElem) unreadAnnouncementsElem.textContent = unreadCount;
         
-        // Recent activities - clickable
+        // Recent activities
         const activitiesQ = query(collection(db, 'attendance'), orderBy('createdAt', 'desc'), limit(10));
         const activitiesSnapshot = await getDocs(activitiesQ);
         const activitiesHtml = [];
         activitiesSnapshot.forEach(doc => {
             const data = doc.data();
             activitiesHtml.push(`
-                <div class="activity-item glass-card-hover" onclick="showAttendanceDetail('${doc.id}')">
+                <div class="activity-item glass-card-hover" onclick="showAttendanceDetail('${doc.id}')" style="cursor: pointer;">
                     <i class="fas fa-clock"></i>
                     <div class="flex-grow-1">
                         <strong>${data.employeeName || 'Employee'}</strong> - ${data.status || 'Checked in'}
@@ -403,14 +382,14 @@ async function loadDashboardData() {
         const recentActivitiesElem = document.getElementById('recentActivities');
         if (recentActivitiesElem) recentActivitiesElem.innerHTML = activitiesHtml.join('') || '<div class="text-center p-3 text-muted">No recent activities</div>';
         
-        // Upcoming appointments - clickable
-        const upcomingQ = query(collection(db, 'appointments'), where('startTime', '>=', Timestamp.now()), orderBy('startTime'), limit(10));
+        // Upcoming appointments
+        const upcomingQ = query(collection(db, 'appointments'), orderBy('startTime'), limit(10));
         const upcomingSnapshot = await getDocs(upcomingQ);
         const upcomingHtml = [];
         upcomingSnapshot.forEach(doc => {
             const data = doc.data();
             upcomingHtml.push(`
-                <div class="schedule-item glass-card-hover" onclick="showAppointmentDetail('${doc.id}')">
+                <div class="schedule-item glass-card-hover" onclick="showAppointmentDetail('${doc.id}')" style="cursor: pointer;">
                     <i class="fas fa-calendar-alt"></i>
                     <div class="flex-grow-1">
                         <strong>${data.title}</strong>
@@ -428,7 +407,7 @@ async function loadDashboardData() {
     }
 }
 
-// Clickable Detail View Functions
+// Detail View Functions
 window.showTaskDetail = async function(taskId) {
     const taskDoc = await getDoc(doc(db, 'tasks', taskId));
     if (!taskDoc.exists()) return;
@@ -500,8 +479,7 @@ window.showAnnouncementDetail = async function(announcementId) {
         backdrop: 'rgba(0,0,0,0.8)'
     });
     
-    // Mark as read
-    if (!ann.readBy?.includes(currentEmployee.id)) {
+    if (!(ann.readBy || []).includes(currentEmployee.id)) {
         await updateDoc(doc(db, 'announcements', announcementId), {
             readBy: [...(ann.readBy || []), currentEmployee.id]
         });
@@ -633,7 +611,7 @@ async function loadTasks() {
                     <p class="small text-muted mt-2">${data.description || ''}</p>
                     <div class="d-flex justify-content-between align-items-center mt-2">
                         <small><i class="far fa-calendar-alt"></i> Due: ${data.dueDate?.toDate().toLocaleDateString() || 'No date'}</small>
-                        <small><i class="fas fa-user"></i> Assigned by: ${data.createdByName || data.assignedByName}</small>
+                        <small><i class="fas fa-user"></i> Created by: ${data.createdByName || data.assignedByName}</small>
                     </div>
                 </div>
             `;
@@ -725,11 +703,12 @@ async function loadDocuments() {
         
         snapshot.forEach(doc => {
             const data = doc.data();
+            const fileExt = data.fileType || 'file';
             grid.innerHTML += `
                 <div class="col-md-4">
                     <div class="glass-card-inner p-3" onclick="window.open('${data.fileUrl}', '_blank')" style="cursor: pointer;">
                         <div class="d-flex align-items-center gap-3">
-                            <i class="fas fa-file-${data.fileType === 'pdf' ? 'pdf' : 'image'} fa-2x text-${data.fileType === 'pdf' ? 'danger' : 'primary'}"></i>
+                            <i class="fas fa-file-${fileExt === 'pdf' ? 'pdf' : 'image'} fa-2x text-${fileExt === 'pdf' ? 'danger' : 'primary'}"></i>
                             <div class="flex-grow-1">
                                 <h6>${data.title}</h6>
                                 <small class="text-muted">Uploaded by ${data.uploadedByName} (${data.uploadedByPosition})<br>${data.createdAt?.toDate().toLocaleDateString()}</small>
@@ -801,7 +780,7 @@ async function loadAnnouncements() {
         
         for (const docSnapshot of snapshot.docs) {
             const data = docSnapshot.data();
-            const isRead = data.readBy?.includes(currentEmployee.id);
+            const isRead = (data.readBy || []).includes(currentEmployee.id);
             announcementsContainer.innerHTML += `
                 <div class="glass-card-inner p-3 mb-2 ${isRead ? '' : 'border-primary'}" onclick="showAnnouncementDetail('${docSnapshot.id}')" style="cursor: pointer;">
                     <div class="d-flex justify-content-between">
@@ -826,185 +805,7 @@ async function loadAnnouncements() {
     }
 }
 
-// Add Document Modal
-window.showAddDocumentModal = function() {
-    Swal.fire({
-        title: 'Upload Document',
-        html: `
-            <input type="text" id="docTitle" class="swal2-input" placeholder="Document Title">
-            <select id="docCategory" class="swal2-select">
-                <option>Policy</option>
-                <option>Form</option>
-                <option>Report</option>
-                <option>Other</option>
-            </select>
-            <input type="file" id="docFile" class="swal2-file" accept=".pdf,.doc,.docx,.jpg,.png">
-        `,
-        confirmButtonText: 'Upload',
-        cancelButtonText: 'Cancel',
-        showCancelButton: true,
-        background: 'rgba(0,0,0,0.9)',
-        confirmButtonColor: '#6c63ff',
-        preConfirm: async () => {
-            const title = Swal.getPopup().querySelector('#docTitle').value;
-            const category = Swal.getPopup().querySelector('#docCategory').value;
-            const file = Swal.getPopup().querySelector('#docFile').files[0];
-            
-            if (!title || !file) {
-                Swal.showValidationMessage('Please enter title and select file');
-                return false;
-            }
-            
-            const storageRef = ref(storage, `documents/${Date.now()}_${file.name}`);
-            await uploadBytes(storageRef, file);
-            const fileUrl = await getDownloadURL(storageRef);
-            
-            await addDoc(collection(db, 'documents'), {
-                title: title,
-                category: category,
-                fileUrl: fileUrl,
-                fileType: file.name.split('.').pop(),
-                uploadedById: currentEmployee.id,
-                uploadedByName: currentEmployee.fullName,
-                uploadedByPosition: currentEmployee.position,
-                createdAt: Timestamp.now()
-            });
-            
-            return true;
-        }
-    }).then(() => {
-        loadDocuments();
-    });
-};
-
-// Add Announcement Modal
-window.showAddAnnouncementModal = function() {
-    Swal.fire({
-        title: 'Post Announcement',
-        html: `
-            <input type="text" id="announceTitle" class="swal2-input" placeholder="Announcement Title">
-            <select id="announcePriority" class="swal2-select">
-                <option>Normal</option>
-                <option>High</option>
-                <option>Urgent</option>
-            </select>
-            <textarea id="announceMessage" class="swal2-textarea" placeholder="Announcement Message" rows="4"></textarea>
-        `,
-        confirmButtonText: 'Post',
-        cancelButtonText: 'Cancel',
-        showCancelButton: true,
-        background: 'rgba(0,0,0,0.9)',
-        confirmButtonColor: '#6c63ff',
-        preConfirm: async () => {
-            const title = Swal.getPopup().querySelector('#announceTitle').value;
-            const priority = Swal.getPopup().querySelector('#announcePriority').value;
-            const message = Swal.getPopup().querySelector('#announceMessage').value;
-            
-            if (!title || !message) {
-                Swal.showValidationMessage('Please fill all fields');
-                return false;
-            }
-            
-            await addDoc(collection(db, 'announcements'), {
-                title: title,
-                priority: priority,
-                message: message,
-                authorId: currentEmployee.id,
-                authorName: currentEmployee.fullName,
-                authorPosition: currentEmployee.position,
-                readBy: [],
-                createdAt: Timestamp.now()
-            });
-            
-            return true;
-        }
-    }).then(() => {
-        loadAnnouncements();
-        loadDashboardData();
-    });
-};
-
-// Add Review Modal
-window.showAddReviewModal = function() {
-    // First select employee
-    Swal.fire({
-        title: 'Select Employee',
-        input: 'select',
-        inputOptions: async () => {
-            const snapshot = await getDocs(collection(db, 'employees'));
-            const options = {};
-            snapshot.forEach(doc => {
-                const emp = doc.data();
-                options[doc.id] = `${emp.fullName} (${emp.position})`;
-            });
-            return options;
-        },
-        inputPlaceholder: 'Select an employee',
-        showCancelButton: true,
-        background: 'rgba(0,0,0,0.9)',
-        confirmButtonColor: '#6c63ff',
-        preConfirm: (employeeId) => {
-            if (!employeeId) {
-                Swal.showValidationMessage('Please select an employee');
-                return false;
-            }
-            return employeeId;
-        }
-    }).then((result) => {
-        if (result.value) {
-            showReviewForm(result.value);
-        }
-    });
-};
-
-function showReviewForm(employeeId) {
-    Swal.fire({
-        title: 'Performance Review',
-        html: `
-            <input type="number" id="reviewRating" class="swal2-input" placeholder="Rating (1-5)" min="1" max="5" step="1">
-            <textarea id="reviewFeedback" class="swal2-textarea" placeholder="Feedback" rows="4"></textarea>
-            <input type="text" id="reviewGoals" class="swal2-input" placeholder="Goals for next period">
-        `,
-        confirmButtonText: 'Submit Review',
-        cancelButtonText: 'Cancel',
-        showCancelButton: true,
-        background: 'rgba(0,0,0,0.9)',
-        confirmButtonColor: '#6c63ff',
-        preConfirm: async () => {
-            const rating = parseInt(Swal.getPopup().querySelector('#reviewRating').value);
-            const feedback = Swal.getPopup().querySelector('#reviewFeedback').value;
-            const goals = Swal.getPopup().querySelector('#reviewGoals').value;
-            
-            if (!rating || !feedback) {
-                Swal.showValidationMessage('Please fill rating and feedback');
-                return false;
-            }
-            
-            const employeeDoc = await getDoc(doc(db, 'employees', employeeId));
-            const employee = employeeDoc.data();
-            
-            await addDoc(collection(db, 'performance_reviews'), {
-                employeeId: employeeId,
-                employeeName: employee.fullName,
-                employeePosition: employee.position,
-                rating: rating,
-                feedback: feedback,
-                goals: goals,
-                reviewerId: currentEmployee.id,
-                reviewerName: currentEmployee.fullName,
-                reviewerPosition: currentEmployee.position,
-                reviewDate: Timestamp.now(),
-                createdAt: Timestamp.now()
-            });
-            
-            return true;
-        }
-    }).then(() => {
-        loadPerformanceReviews();
-    });
-}
-
-// Existing functions from previous code...
+// Modal Functions
 window.showAddAppointmentModal = function() {
     const dateTimeInput = document.getElementById('appointmentDateTime');
     if (dateTimeInput) dateTimeInput.value = new Date().toISOString().slice(0, 16);
@@ -1020,7 +821,7 @@ window.createAppointment = async function() {
     const location = document.getElementById('appointmentLocation').value;
     const description = document.getElementById('appointmentDescription').value;
     
-    if (!title || !dateTime) { showToast('Please fill required fields', 'error'); return; }
+    if (!title || !dateTime) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: 'rgba(0,0,0,0.9)' }); return; }
     
     await addDoc(collection(db, 'appointments'), {
         title: title,
@@ -1039,7 +840,7 @@ window.createAppointment = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('appointmentModal')).hide();
-    showToast('Appointment scheduled successfully', 'success');
+    Swal.fire({ title: 'Success', text: 'Appointment scheduled successfully', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
     await loadAppointments();
     await loadDashboardData();
 };
@@ -1057,7 +858,7 @@ window.createTask = async function() {
     const dueDate = document.getElementById('taskDueDate').value;
     const description = document.getElementById('taskDescription').value;
     
-    if (!title || !dueDate) { showToast('Please fill required fields', 'error'); return; }
+    if (!title || !dueDate) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: 'rgba(0,0,0,0.9)' }); return; }
     
     await addDoc(collection(db, 'tasks'), {
         title: title,
@@ -1072,7 +873,7 @@ window.createTask = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
-    showToast('Task created successfully', 'success');
+    Swal.fire({ title: 'Success', text: 'Task created successfully', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
     await loadTasks();
     await loadDashboardData();
 };
@@ -1092,7 +893,7 @@ window.submitLeaveRequest = async function() {
     const endDate = document.getElementById('leaveEnd').value;
     const reason = document.getElementById('leaveReason').value;
     
-    if (!startDate || !endDate) { showToast('Please select dates', 'error'); return; }
+    if (!startDate || !endDate) { Swal.fire({ title: 'Error', text: 'Please select dates', icon: 'error', background: 'rgba(0,0,0,0.9)' }); return; }
     
     const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
     
@@ -1110,7 +911,7 @@ window.submitLeaveRequest = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('leaveModal')).hide();
-    showToast('Leave request submitted successfully', 'success');
+    Swal.fire({ title: 'Success', text: 'Leave request submitted successfully', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
     await loadLeaveRequests();
 };
 
@@ -1128,7 +929,7 @@ window.submitExpense = async function() {
     const description = document.getElementById('expenseDescription').value;
     const receiptFile = document.getElementById('receiptImage').files[0];
     
-    if (!category || !amount || !date) { showToast('Please fill required fields', 'error'); return; }
+    if (!category || !amount || !date) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: 'rgba(0,0,0,0.9)' }); return; }
     
     let receiptUrl = '';
     if (receiptFile) {
@@ -1151,16 +952,131 @@ window.submitExpense = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
-    showToast('Expense submitted successfully', 'success');
+    Swal.fire({ title: 'Success', text: 'Expense submitted successfully', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
     await loadExpenses();
 };
 
 window.updateTaskStatus = async function(taskId, status) {
     await updateDoc(doc(db, 'tasks', taskId), { status: status, completedAt: status === 'completed' ? Timestamp.now() : null });
-    showToast('Task updated', 'success');
+    Swal.fire({ title: 'Success', text: 'Task updated', icon: 'success', background: 'rgba(0,0,0,0.9)', confirmButtonColor: '#6c63ff' });
     await loadTasks();
     await loadDashboardData();
 };
+
+window.showAddDocumentModal = function() {
+    Swal.fire({
+        title: 'Upload Document',
+        html: `
+            <input type="text" id="docTitle" class="swal2-input" placeholder="Document Title">
+            <select id="docCategory" class="swal2-select">
+                <option>Policy</option><option>Form</option><option>Report</option><option>Other</option>
+            </select>
+            <input type="file" id="docFile" class="swal2-file" accept=".pdf,.doc,.docx,.jpg,.png">
+        `,
+        confirmButtonText: 'Upload',
+        showCancelButton: true,
+        background: 'rgba(0,0,0,0.9)',
+        confirmButtonColor: '#6c63ff',
+        preConfirm: async () => {
+            const title = Swal.getPopup().querySelector('#docTitle').value;
+            const category = Swal.getPopup().querySelector('#docCategory').value;
+            const file = Swal.getPopup().querySelector('#docFile').files[0];
+            if (!title || !file) { Swal.showValidationMessage('Please enter title and select file'); return false; }
+            
+            const storageRef = ref(storage, `documents/${Date.now()}_${file.name}`);
+            await uploadBytes(storageRef, file);
+            const fileUrl = await getDownloadURL(storageRef);
+            
+            await addDoc(collection(db, 'documents'), {
+                title: title, category: category, fileUrl: fileUrl, fileType: file.name.split('.').pop(),
+                uploadedById: currentEmployee.id, uploadedByName: currentEmployee.fullName,
+                uploadedByPosition: currentEmployee.position, createdAt: Timestamp.now()
+            });
+            return true;
+        }
+    }).then(() => { loadDocuments(); });
+};
+
+window.showAddAnnouncementModal = function() {
+    Swal.fire({
+        title: 'Post Announcement',
+        html: `
+            <input type="text" id="announceTitle" class="swal2-input" placeholder="Announcement Title">
+            <select id="announcePriority" class="swal2-select"><option>Normal</option><option>High</option><option>Urgent</option></select>
+            <textarea id="announceMessage" class="swal2-textarea" placeholder="Announcement Message" rows="4"></textarea>
+        `,
+        confirmButtonText: 'Post',
+        showCancelButton: true,
+        background: 'rgba(0,0,0,0.9)',
+        confirmButtonColor: '#6c63ff',
+        preConfirm: async () => {
+            const title = Swal.getPopup().querySelector('#announceTitle').value;
+            const priority = Swal.getPopup().querySelector('#announcePriority').value;
+            const message = Swal.getPopup().querySelector('#announceMessage').value;
+            if (!title || !message) { Swal.showValidationMessage('Please fill all fields'); return false; }
+            
+            await addDoc(collection(db, 'announcements'), {
+                title: title, priority: priority, message: message, authorId: currentEmployee.id,
+                authorName: currentEmployee.fullName, authorPosition: currentEmployee.position,
+                readBy: [], createdAt: Timestamp.now()
+            });
+            return true;
+        }
+    }).then(() => { loadAnnouncements(); loadDashboardData(); });
+};
+
+window.showAddReviewModal = function() {
+    Swal.fire({
+        title: 'Select Employee',
+        input: 'select',
+        inputOptions: async () => {
+            const snapshot = await getDocs(collection(db, 'employees'));
+            const options = {};
+            snapshot.forEach(doc => { const emp = doc.data(); options[doc.id] = `${emp.fullName} (${emp.position})`; });
+            return options;
+        },
+        showCancelButton: true,
+        background: 'rgba(0,0,0,0.9)',
+        confirmButtonColor: '#6c63ff',
+        preConfirm: (employeeId) => {
+            if (!employeeId) { Swal.showValidationMessage('Please select an employee'); return false; }
+            return employeeId;
+        }
+    }).then((result) => {
+        if (result.value) showReviewForm(result.value);
+    });
+};
+
+function showReviewForm(employeeId) {
+    Swal.fire({
+        title: 'Performance Review',
+        html: `
+            <input type="number" id="reviewRating" class="swal2-input" placeholder="Rating (1-5)" min="1" max="5" step="1">
+            <textarea id="reviewFeedback" class="swal2-textarea" placeholder="Feedback" rows="4"></textarea>
+            <input type="text" id="reviewGoals" class="swal2-input" placeholder="Goals for next period">
+        `,
+        confirmButtonText: 'Submit Review',
+        showCancelButton: true,
+        background: 'rgba(0,0,0,0.9)',
+        confirmButtonColor: '#6c63ff',
+        preConfirm: async () => {
+            const rating = parseInt(Swal.getPopup().querySelector('#reviewRating').value);
+            const feedback = Swal.getPopup().querySelector('#reviewFeedback').value;
+            const goals = Swal.getPopup().querySelector('#reviewGoals').value;
+            if (!rating || !feedback) { Swal.showValidationMessage('Please fill rating and feedback'); return false; }
+            
+            const employeeDoc = await getDoc(doc(db, 'employees', employeeId));
+            const employee = employeeDoc.data();
+            await addDoc(collection(db, 'performance_reviews'), {
+                employeeId: employeeId, employeeName: employee.fullName, employeePosition: employee.position,
+                rating: rating, feedback: feedback, goals: goals, reviewerId: currentEmployee.id,
+                reviewerName: currentEmployee.fullName, reviewerPosition: currentEmployee.position,
+                reviewDate: Timestamp.now(), createdAt: Timestamp.now()
+            });
+            return true;
+        }
+    }).then(() => { loadPerformanceReviews(); });
+}
 
 window.showSection = function(section) {
     const sections = ['dashboard', 'attendance', 'appointments', 'tasks', 'leave', 'expenses', 'documents', 'performance', 'announcements', 'admin'];
@@ -1188,26 +1104,9 @@ window.logout = function() {
     window.location.reload();
 };
 
-function showToast(message, type) {
-    const toast = document.createElement('div');
-    toast.className = `toast-notification ${type}`;
-    toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: ${type === 'success' ? '#4caf50' : '#f44336'};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        z-index: 9999;
-        animation: slideIn 0.3s ease-out;
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+// Add SweetAlert2 to the page if not already there
+if (typeof Swal === 'undefined') {
+    const swalScript = document.createElement('script');
+    swalScript.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+    document.head.appendChild(swalScript);
 }
-
-// Add SweetAlert2 for modals
-const swalScript = document.createElement('script');
-swalScript.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
-document.head.appendChild(swalScript);
