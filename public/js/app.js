@@ -16,6 +16,9 @@ let calendar = null;
 let currentChatType = 'group';
 let currentChatUserId = null;
 let chatUnsubscribe = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -40,26 +43,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         currentEmployee = { id: userDoc.id, ...userDoc.data() };
         
-        // Handle field name with space (role )
         const userRole = currentEmployee['role '] || currentEmployee.role || 'employee';
         const isAdmin = userRole === 'admin' || userRole === 'super admin';
         
         console.log('Employee role:', userRole);
         console.log('Is admin?', isAdmin);
         
-        // Display user role with nickname if available
         const displayName = currentEmployee.nickname || currentEmployee.fullName;
         document.getElementById('userRole').innerHTML = `<strong>${currentEmployee.position || 'Employee'}</strong><br><small>${displayName}</small>`;
         
-        // Show admin menu in sidebar
         const adminMenu = document.getElementById('adminMenu');
         if (adminMenu) adminMenu.style.display = isAdmin ? 'block' : 'none';
         
-        // Show the admin button in navbar
         const adminNavBtn = document.getElementById('adminNavBtn');
         if (adminNavBtn) adminNavBtn.style.display = isAdmin ? 'inline-block' : 'none';
         
-        // Show edit profile button
         const editProfileBtn = document.getElementById('editProfileBtn');
         if (editProfileBtn) editProfileBtn.style.display = 'inline-block';
         
@@ -76,12 +74,152 @@ document.addEventListener('DOMContentLoaded', async () => {
         initSignaturePad();
         updateAttendanceButton();
         
+        // Add chat attachment buttons to UI
+        addChatAttachmentButtons();
+        
     } catch (error) {
         console.error('Error loading user:', error);
         localStorage.removeItem('currentUser');
         showLoginModal();
     }
 });
+
+function addChatAttachmentButtons() {
+    const chatInputContainer = document.querySelector('.chat-input-container .d-flex');
+    if (chatInputContainer && !document.getElementById('chatAttachmentBtn')) {
+        const attachmentGroup = document.createElement('div');
+        attachmentGroup.className = 'd-flex gap-2';
+        attachmentGroup.innerHTML = `
+            <button id="chatImageBtn" class="btn-glass-sm" title="Send Image">
+                <i class="fas fa-image"></i>
+            </button>
+            <button id="chatFileBtn" class="btn-glass-sm" title="Send File">
+                <i class="fas fa-paperclip"></i>
+            </button>
+            <button id="chatVoiceBtn" class="btn-glass-sm" title="Voice Message">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <input type="file" id="chatImageInput" accept="image/*" style="display: none;">
+            <input type="file" id="chatFileInput" style="display: none;">
+        `;
+        chatInputContainer.insertBefore(attachmentGroup, chatInputContainer.firstChild);
+        
+        document.getElementById('chatImageBtn').onclick = () => document.getElementById('chatImageInput').click();
+        document.getElementById('chatFileBtn').onclick = () => document.getElementById('chatFileInput').click();
+        document.getElementById('chatVoiceBtn').onclick = toggleVoiceRecording;
+        document.getElementById('chatImageInput').onchange = () => sendMediaMessage('image');
+        document.getElementById('chatFileInput').onchange = () => sendMediaMessage('file');
+    }
+}
+
+async function toggleVoiceRecording() {
+    const voiceBtn = document.getElementById('chatVoiceBtn');
+    if (!isRecording) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+            
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                await sendMediaMessage('voice', audioBlob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+            
+            mediaRecorder.start();
+            isRecording = true;
+            voiceBtn.innerHTML = '<i class="fas fa-stop" style="color: #f44336;"></i>';
+            voiceBtn.classList.add('recording');
+            
+            setTimeout(() => {
+                if (isRecording) stopVoiceRecording();
+            }, 60000); // Auto-stop after 60 seconds
+        } catch (error) {
+            Swal.fire({ title: 'Error', text: 'Microphone access denied', icon: 'error', background: '#000' });
+        }
+    } else {
+        stopVoiceRecording();
+    }
+}
+
+function stopVoiceRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        const voiceBtn = document.getElementById('chatVoiceBtn');
+        voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+        voiceBtn.classList.remove('recording');
+    }
+}
+
+async function sendMediaMessage(type, customBlob = null) {
+    let file = null;
+    let inputElement = null;
+    
+    if (type === 'image') {
+        inputElement = document.getElementById('chatImageInput');
+        file = inputElement.files[0];
+    } else if (type === 'file') {
+        inputElement = document.getElementById('chatFileInput');
+        file = inputElement.files[0];
+    } else if (type === 'voice' && customBlob) {
+        file = customBlob;
+    }
+    
+    if (!file) return;
+    
+    // Show uploading indicator
+    Swal.fire({ title: 'Uploading...', text: 'Please wait', allowOutsideClick: false, didOpen: () => Swal.showLoading(), background: '#000' });
+    
+    try {
+        const timestamp = Date.now();
+        const fileExtension = file.name ? file.name.split('.').pop() : 'webm';
+        const filePath = `chat_files/${currentChatType}/${currentChatUserId || 'group'}/${timestamp}_${type}.${fileExtension}`;
+        const storageRef = ref(storage, filePath);
+        await uploadBytes(storageRef, file);
+        const downloadUrl = await getDownloadURL(storageRef);
+        
+        let messageData = {
+            senderId: currentEmployee.id,
+            senderName: currentEmployee.fullName,
+            timestamp: Timestamp.now(),
+            type: currentChatType,
+            readBy: [currentEmployee.id],
+            mediaType: type,
+            mediaUrl: downloadUrl
+        };
+        
+        if (type === 'image') {
+            messageData.message = '📷 Sent an image';
+            messageData.thumbnail = downloadUrl;
+        } else if (type === 'file') {
+            messageData.message = `📎 Sent a file: ${file.name}`;
+            messageData.fileName = file.name;
+            messageData.fileSize = file.size;
+        } else if (type === 'voice') {
+            messageData.message = '🎤 Sent a voice message';
+            messageData.duration = '?'; // Could calculate duration if needed
+        }
+        
+        if (currentChatType === 'dm' && currentChatUserId) {
+            messageData.receiverId = currentChatUserId;
+            messageData.participants = [currentEmployee.id, currentChatUserId];
+        }
+        
+        await addDoc(collection(db, 'chat_messages'), messageData);
+        
+        if (inputElement) inputElement.value = '';
+        Swal.close();
+        
+    } catch (error) {
+        Swal.close();
+        Swal.fire({ title: 'Error', text: 'Failed to upload file', icon: 'error', background: '#000' });
+    }
+}
 
 function showLoginModal() {
     const modalEl = document.getElementById('loginModal');
@@ -389,7 +527,6 @@ async function loadDashboardData() {
         const unreadAnnouncementsElem = document.getElementById('unreadAnnouncements');
         if (unreadAnnouncementsElem) unreadAnnouncementsElem.textContent = unreadCount;
         
-        // Recent activities - clickable
         const activitiesQ = query(collection(db, 'attendance'), orderBy('createdAt', 'desc'), limit(10));
         const activitiesSnapshot = await getDocs(activitiesQ);
         const activitiesHtml = [];
@@ -409,7 +546,6 @@ async function loadDashboardData() {
         const recentActivitiesElem = document.getElementById('recentActivities');
         if (recentActivitiesElem) recentActivitiesElem.innerHTML = activitiesHtml.join('') || '<div class="text-center p-3 text-muted">No recent activities</div>';
         
-        // Upcoming appointments - clickable
         const upcomingQ = query(collection(db, 'appointments'), where('startTime', '>=', Timestamp.now()), orderBy('startTime'), limit(10));
         const upcomingSnapshot = await getDocs(upcomingQ);
         const upcomingHtml = [];
@@ -429,7 +565,6 @@ async function loadDashboardData() {
         const upcomingAppointmentsElem = document.getElementById('upcomingAppointments');
         if (upcomingAppointmentsElem) upcomingAppointmentsElem.innerHTML = upcomingHtml.join('') || '<div class="text-center p-3 text-muted">No upcoming appointments</div>';
         
-        // Recent Tasks - clickable cards
         const recentTasksQ = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'), limit(10));
         const recentTasksSnapshot = await getDocs(recentTasksQ);
         const tasksHtml = [];
@@ -449,7 +584,6 @@ async function loadDashboardData() {
             `);
         });
         
-        // Recent Leave Requests - clickable cards
         const leaveQ = query(collection(db, 'leave_requests'), orderBy('createdAt', 'desc'), limit(10));
         const leaveSnapshot = await getDocs(leaveQ);
         const leaveHtml = [];
@@ -468,7 +602,6 @@ async function loadDashboardData() {
             `);
         });
         
-        // Recent Expenses - clickable cards
         const expensesQ = query(collection(db, 'expenses'), orderBy('createdAt', 'desc'), limit(10));
         const expensesSnapshot = await getDocs(expensesQ);
         const expensesHtml = [];
@@ -487,7 +620,6 @@ async function loadDashboardData() {
             `);
         });
         
-        // Update the dashboard with new sections
         const dashboardSection = document.getElementById('dashboardSection');
         if (dashboardSection) {
             let additionalRow = dashboardSection.querySelector('.additional-dashboard-row');
@@ -524,7 +656,7 @@ async function loadDashboardData() {
     }
 }
 
-// ===== DETAIL VIEW FUNCTIONS =====
+// ===== DETAIL VIEW FUNCTIONS (shortened for brevity - keep existing functions) =====
 window.showTaskDetail = async function(taskId) {
     const taskDoc = await getDoc(doc(db, 'tasks', taskId));
     if (!taskDoc.exists()) return;
@@ -683,7 +815,7 @@ window.showExpenseDetail = async function(expenseId) {
     });
 };
 
-// ===== LOAD FUNCTIONS =====
+// ===== LOAD FUNCTIONS (shortened for brevity) =====
 async function loadAttendanceHistory() {
     try {
         const q = query(collection(db, 'attendance'), orderBy('date', 'desc'), limit(30));
@@ -838,7 +970,7 @@ async function loadExpenses() {
         const snapshot = await getDocs(q);
         const container = document.getElementById('expensesList');
         if (!container) return;
-        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></td></thead><tbody></tbody><tr></div>';
+        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>';
         const tbody = container.querySelector('tbody');
         
         snapshot.forEach(doc => {
@@ -1288,7 +1420,7 @@ function showReviewForm(employeeId) {
     }).then(() => { loadPerformanceReviews(); });
 };
 
-// ========== CHAT FUNCTIONS WITH READ RECEIPTS ==========
+// ========== CHAT FUNCTIONS WITH FILE SUPPORT ==========
 window.showGroupChat = function() {
     currentChatType = 'group';
     currentChatUserId = null;
@@ -1346,7 +1478,6 @@ window.startDM = function(userId) {
     loadChatMessages('dm', userId);
 };
 
-// Mark message as read
 async function markMessageAsRead(messageId) {
     if (!currentEmployee?.id) return;
     try {
@@ -1388,7 +1519,6 @@ async function loadChatMessages(type, userId) {
         }
         messages.sort((a, b) => (a.timestamp?.toDate() || 0) - (b.timestamp?.toDate() || 0));
         
-        // Mark unread messages as read
         for (const msg of messages) {
             if (msg.senderId !== currentEmployee.id && (!msg.readBy || !msg.readBy.includes(currentEmployee.id))) {
                 await markMessageAsRead(msg.id);
@@ -1407,12 +1537,10 @@ async function displayMessages(messages) {
     for (const msg of messages) {
         const senderDoc = await getDoc(doc(db, 'employees', msg.senderId));
         const sender = senderDoc.data();
-        // Use nickname if available, otherwise full name
         const displayName = sender?.nickname || sender?.fullName || 'Unknown';
         const initial = displayName.charAt(0).toUpperCase();
         const isOwn = msg.senderId === currentEmployee.id;
         
-        // Get read receipts (who has seen this message)
         const readBy = msg.readBy || [];
         const readByNames = [];
         for (const readerId of readBy) {
@@ -1431,6 +1559,24 @@ async function displayMessages(messages) {
             </div>
         ` : '';
         
+        // Handle media messages
+        let mediaHtml = '';
+        if (msg.mediaType === 'image') {
+            mediaHtml = `<div class="chat-media-container mt-2">
+                <img src="${msg.mediaUrl}" class="chat-image" onclick="window.open('${msg.mediaUrl}', '_blank')" style="max-width: 200px; max-height: 150px; border-radius: 10px; cursor: pointer;">
+            </div>`;
+        } else if (msg.mediaType === 'file') {
+            mediaHtml = `<div class="chat-media-container mt-2">
+                <a href="${msg.mediaUrl}" target="_blank" class="chat-file-link" style="color: #6c63ff; text-decoration: none;">
+                    <i class="fas fa-file-download"></i> ${msg.fileName || 'Download File'} (${msg.fileSize ? (msg.fileSize / 1024).toFixed(1) + ' KB' : ''})
+                </a>
+            </div>`;
+        } else if (msg.mediaType === 'voice') {
+            mediaHtml = `<div class="chat-media-container mt-2">
+                <audio controls src="${msg.mediaUrl}" style="max-width: 200px; height: 36px;"></audio>
+            </div>`;
+        }
+        
         const msgDiv = document.createElement('div');
         msgDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
         msgDiv.innerHTML = `
@@ -1442,7 +1588,8 @@ async function displayMessages(messages) {
             ` : ''}
             <div class="chat-message-bubble">
                 <div class="chat-message-name">${escapeHtml(displayName)}</div>
-                <div class="chat-message-text">${escapeHtml(msg.message)}</div>
+                <div class="chat-message-text">${escapeHtml(msg.message || '')}</div>
+                ${mediaHtml}
                 <div class="chat-message-time">${msg.timestamp?.toDate().toLocaleTimeString()}</div>
                 ${readReceiptsHtml}
             </div>
@@ -1463,7 +1610,7 @@ window.sendChatMessage = async function() {
         senderName: currentEmployee.fullName,
         timestamp: Timestamp.now(),
         type: currentChatType,
-        readBy: [currentEmployee.id] // Sender has read their own message
+        readBy: [currentEmployee.id]
     };
     
     if (currentChatType === 'dm' && currentChatUserId) {
@@ -1511,7 +1658,6 @@ window.updateProfile = async function() {
     bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
     Swal.fire({ title: 'Success', text: 'Profile updated!', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
     
-    // Update display
     const displayName = currentEmployee.nickname || currentEmployee.fullName;
     document.getElementById('userRole').innerHTML = `<strong>${currentEmployee.position || 'Employee'}</strong><br><small>${displayName}</small>`;
     loadChatUsers();
@@ -1535,7 +1681,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// ===== ADMIN FUNCTIONS =====
+// ===== ADMIN FUNCTIONS (shortened - keep existing) =====
 window.showAdminEmployees = function() {
     document.getElementById('adminContent').innerHTML = `
         <div class="glass-card-inner">
@@ -1696,7 +1842,10 @@ window.generateReport = async function() {
             <table class="glass-table">
                 <thead><tr><th>Employee</th><th>Days Present</th><th>Total Hours</th></tr></thead>
                 <tbody>
-                    ${Object.values(employeeSummary).map(emp => `<tr><td>${emp.name}</td><td>${emp.present}</td><td>${emp.hours.toFixed(1)} hrs</td>`).join('')}
+                    ${Object.values(employeeSummary).map(emp => `<tr><td>${emp.name}</td><td>${emp.present}</td>
+
+
+<a href="${emp.hours.toFixed(1)} hrs</td>`).join('')}
                 </tbody>
             </table>
         </div>
@@ -1744,7 +1893,7 @@ window.calculatePayroll = async function() {
             <table class="glass-table">
                 <thead><tr><th>Employee</th><th>Position</th><th>Hours Worked</th><th>Monthly Salary</th><th>Pro-rated Amount</th></tr></thead>
                 <tbody>
-                    ${payroll.map(p => `<tr><td>${p.name}</td><td>${p.position}</td><td>${p.hours}</td><td>$${p.salary}</td><td>$${p.amount}</td>`).join('')}
+                    ${payroll.map(p => `<tr><td>${p.name}</td><td>${p.position}</td><td>${p.hours}</td><td>$${p.salary}</td><td>$${p.amount}</td></tr>`).join('')}
                 </tbody>
             </table>
         </div>
