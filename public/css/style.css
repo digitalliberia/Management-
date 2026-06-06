@@ -818,3 +818,82 @@ body {
     color: #ffffff;
     font-size: 1rem;
 }
+
+/* Mobile Responsive Additions */
+@media (max-width: 768px) {
+    .glass-stat-card {
+        padding: 12px 8px;
+    }
+    
+    .stat-icon i {
+        font-size: 1.3rem;
+    }
+    
+    .stat-info h3 {
+        font-size: 1rem;
+    }
+    
+    .stat-info p {
+        font-size: 0.65rem;
+    }
+    
+    .glass-info-card {
+        padding: 10px;
+    }
+    
+    .glass-info-card i {
+        font-size: 1.2rem;
+    }
+    
+    .glass-info-card h4 {
+        font-size: 1rem;
+    }
+    
+    .glass-info-card p {
+        font-size: 0.6rem;
+    }
+    
+    .btn-glass-success, .btn-glass-danger {
+        padding: 8px 16px;
+        font-size: 0.8rem;
+    }
+    
+    .chat-message-name, .chat-message-text {
+        font-size: 0.8rem;
+    }
+    
+    .glass-card .row.g-3 {
+        --bs-gutter-y: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .glass-nav .container-fluid {
+        padding-left: 50px;
+    }
+    
+    .brand-text {
+        font-size: 0.9rem;
+    }
+    
+    .btn-glass-logout {
+        padding: 4px 8px;
+        font-size: 0.7rem;
+    }
+    
+    .card-header-glass {
+        font-size: 0.8rem;
+    }
+    
+    .glass-admin-card {
+        padding: 10px 5px;
+    }
+    
+    .glass-admin-card i {
+        font-size: 1.2rem;
+    }
+    
+    .glass-admin-card h5 {
+        font-size: 0.7rem;
+    }
+}
