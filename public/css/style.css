@@ -19,18 +19,34 @@
     box-sizing: border-box;
 }
 
-/* Liberia-inspired dark theme - Blue Dominant */
+/* Liberia-inspired dark theme - Deep dark background */
 body {
-    background: linear-gradient(135deg, #000428 0%, #000a1a 50%, #001133 100%);
+    background: #0a0a0f;
+    background-image: radial-gradient(circle at 10% 20%, rgba(0, 40, 104, 0.15) 0%, transparent 50%),
+                      radial-gradient(circle at 90% 80%, rgba(191, 10, 48, 0.08) 0%, transparent 50%);
     font-family: 'Inter', 'Poppins', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
     min-height: 100vh;
     color: var(--liberia-white);
     position: relative;
 }
 
-/* Liberia flag accent overlay - Blue dominant */
+/* Subtle grid pattern for depth */
 body::before {
     content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: linear-gradient(rgba(0, 40, 104, 0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(0, 40, 104, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Liberia flag accent overlay */
+.flag-accent {
     position: fixed;
     top: 0;
     left: 0;
@@ -40,22 +56,24 @@ body::before {
     z-index: 2000;
 }
 
-/* Glass Navigation - Blue dominant */
+/* Glass Navigation */
 .glass-nav {
-    background: rgba(0, 20, 50, 0.95) !important;
+    background: rgba(5, 10, 20, 0.95) !important;
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(0, 40, 104, 0.3);
+    border-bottom: 1px solid rgba(0, 40, 104, 0.4);
     box-shadow: var(--glass-shadow);
+    position: relative;
+    z-index: 100;
 }
 
-.glass-nav::before {
+.glass-nav::after {
     content: '';
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--liberia-blue), var(--liberia-red), var(--liberia-white), var(--liberia-blue));
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--liberia-blue), var(--liberia-red), var(--liberia-white), var(--liberia-blue), transparent);
 }
 
 .brand-text {
@@ -75,13 +93,15 @@ body::before {
     50% { background-position: 100% 50%; }
 }
 
-/* Glass Sidebar - Blue tint */
+/* Glass Sidebar */
 .sidebar-glass {
-    background: rgba(0, 20, 50, 0.8);
+    background: rgba(5, 10, 25, 0.9);
     backdrop-filter: blur(10px);
     border-right: 1px solid rgba(0, 40, 104, 0.3);
     min-height: calc(100vh - 70px);
     padding: 20px 0;
+    position: relative;
+    z-index: 10;
 }
 
 .nav-list {
@@ -90,6 +110,7 @@ body::before {
     gap: 8px;
 }
 
+/* Sidebar icons - unique blue glass */
 .glass-nav-item {
     display: flex;
     align-items: center;
@@ -97,7 +118,7 @@ body::before {
     padding: 12px 20px;
     margin: 0 10px;
     border-radius: 12px;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.85);
     text-decoration: none;
     transition: all 0.3s ease;
     position: relative;
@@ -108,34 +129,47 @@ body::before {
     width: 24px;
     font-size: 1.2rem;
     transition: all 0.3s ease;
+    background: rgba(0, 40, 104, 0.3);
+    padding: 8px;
+    border-radius: 50%;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(0, 40, 104, 0.2);
 }
 
 .glass-nav-item:hover {
-    background: rgba(0, 40, 104, 0.3);
+    background: rgba(0, 40, 104, 0.2);
     transform: translateX(5px);
     color: var(--liberia-white);
 }
 
 .glass-nav-item:hover i {
-    color: var(--liberia-blue);
+    background: var(--liberia-blue);
+    color: var(--liberia-white);
     transform: scale(1.1);
+    box-shadow: var(--blue-glow);
 }
 
 .glass-nav-item.active {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.4), rgba(191, 10, 48, 0.2));
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.3), rgba(191, 10, 48, 0.1));
     border-left: 3px solid var(--liberia-blue);
-    color: var(--liberia-white);
+}
+
+.glass-nav-item.active i {
+    background: var(--liberia-blue);
+    color: white;
     box-shadow: var(--blue-glow);
 }
 
 /* Main Content */
 .main-glass {
     padding: 20px;
+    position: relative;
+    z-index: 10;
 }
 
-/* Glass Cards - Blue dominant */
+/* Glass Cards */
 .glass-card {
-    background: rgba(0, 20, 50, 0.7);
+    background: rgba(5, 10, 20, 0.6);
     backdrop-filter: blur(10px);
     border-radius: 20px;
     border: 1px solid rgba(0, 40, 104, 0.3);
@@ -146,19 +180,19 @@ body::before {
     overflow: hidden;
 }
 
-.glass-card::after {
+.glass-card::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 3px;
+    height: 2px;
     background: linear-gradient(90deg, var(--liberia-blue), var(--liberia-white), var(--liberia-red));
-    opacity: 0.5;
+    opacity: 0.4;
 }
 
 .glass-card-inner {
-    background: rgba(0, 20, 50, 0.6);
+    background: rgba(5, 10, 20, 0.5);
     backdrop-filter: blur(8px);
     border-radius: 16px;
     border: 1px solid rgba(0, 40, 104, 0.2);
@@ -168,7 +202,7 @@ body::before {
 
 .card-header-glass {
     padding: 15px 20px;
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.25), rgba(191, 10, 48, 0.1));
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.2), rgba(191, 10, 48, 0.08));
     border-bottom: 1px solid rgba(0, 40, 104, 0.3);
     font-weight: 600;
     font-size: 1rem;
@@ -176,9 +210,9 @@ body::before {
     letter-spacing: 0.3px;
 }
 
-/* Stat Cards - Blue dominant */
+/* STAT CARDS - Unique icon backgrounds */
 .glass-stat-card {
-    background: linear-gradient(135deg, rgba(0, 30, 60, 0.8), rgba(0, 40, 104, 0.3));
+    background: rgba(5, 10, 20, 0.7);
     backdrop-filter: blur(10px);
     border-radius: 16px;
     padding: 20px;
@@ -191,39 +225,61 @@ body::before {
     overflow: hidden;
 }
 
-.glass-stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0, 40, 104, 0.3), transparent);
-    transition: left 0.5s;
+/* Today's Hours Icon - Blue gradient */
+.glass-stat-card:nth-child(1) .stat-icon i {
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.4), rgba(0, 60, 150, 0.4));
+    padding: 12px;
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(0, 40, 104, 0.3);
+    transition: all 0.3s ease;
 }
 
-.glass-stat-card:hover::before {
-    left: 100%;
+/* Pending Tasks Icon - Red accent gradient */
+.glass-stat-card:nth-child(2) .stat-icon i {
+    background: linear-gradient(135deg, rgba(191, 10, 48, 0.3), rgba(150, 8, 38, 0.3));
+    padding: 12px;
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(191, 10, 48, 0.2);
+    transition: all 0.3s ease;
+}
+
+/* Today's Appointments Icon - White glass */
+.glass-stat-card:nth-child(3) .stat-icon i {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+/* Announcements Icon - Blue/Red gradient */
+.glass-stat-card:nth-child(4) .stat-icon i {
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.4), rgba(191, 10, 48, 0.2));
+    padding: 12px;
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(0, 40, 104, 0.3);
+    transition: all 0.3s ease;
+}
+
+.glass-stat-card:hover .stat-icon i {
+    transform: scale(1.15);
+    box-shadow: var(--blue-glow);
 }
 
 .glass-stat-card:hover {
     transform: translateY(-5px);
-    background: linear-gradient(135deg, rgba(0, 30, 60, 0.9), rgba(0, 40, 104, 0.4));
+    background: rgba(5, 10, 20, 0.85);
     border-color: var(--liberia-blue);
     box-shadow: var(--blue-glow);
 }
 
 .stat-icon i {
-    font-size: 2.5rem;
-    color: var(--liberia-blue);
-    opacity: 0.9;
-    transition: all 0.3s ease;
-}
-
-.glass-stat-card:hover .stat-icon i {
-    color: var(--liberia-white);
-    transform: scale(1.1);
-    text-shadow: var(--blue-glow);
+    font-size: 1.8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
 }
 
 .stat-info h3 {
@@ -243,9 +299,134 @@ body::before {
     color: var(--liberia-white);
 }
 
-/* Buttons - Blue dominant */
+/* ACTIVITY ITEMS - Unique backgrounds */
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(5, 10, 20, 0.4);
+}
+
+.activity-item i {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+/* Clock icon in recent activities */
+.activity-item:first-child i {
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.5), rgba(0, 60, 150, 0.3));
+    color: #4c9aff;
+}
+
+/* User icon */
+.activity-item:nth-child(2) i {
+    background: linear-gradient(135deg, rgba(191, 10, 48, 0.4), rgba(150, 8, 38, 0.3));
+    color: #ff6b6b;
+}
+
+/* Check icon */
+.activity-item:nth-child(3) i {
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.4), rgba(255, 255, 255, 0.1));
+    color: #88ff88;
+}
+
+.activity-item:hover {
+    background: rgba(0, 40, 104, 0.2);
+    transform: translateX(5px);
+}
+
+.activity-item:hover i {
+    transform: scale(1.1);
+}
+
+/* SCHEDULE ITEMS */
+.schedule-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(5, 10, 20, 0.4);
+}
+
+.schedule-item i {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(0, 40, 104, 0.3);
+    color: #4c9aff;
+    transition: all 0.3s ease;
+}
+
+.schedule-item:hover {
+    background: rgba(0, 40, 104, 0.2);
+    transform: translateX(5px);
+}
+
+/* TASK CARDS */
+.task-card {
+    background: rgba(5, 10, 20, 0.5);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--liberia-blue);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.task-card:hover {
+    transform: translateY(-3px);
+    background: rgba(0, 40, 104, 0.2);
+    border-left-color: var(--liberia-white);
+    box-shadow: var(--blue-glow);
+}
+
+.task-card i.fa-tasks {
+    background: rgba(0, 40, 104, 0.3);
+    padding: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+/* LEAVE CARDS */
+.leave-card-mini {
+    transition: all 0.2s ease;
+}
+
+.leave-card-mini i {
+    background: rgba(191, 10, 48, 0.2);
+    padding: 8px;
+    border-radius: 50%;
+}
+
+/* EXPENSE CARDS */
+.expense-card-mini i {
+    background: rgba(0, 40, 104, 0.3);
+    padding: 8px;
+    border-radius: 50%;
+}
+
+/* Buttons */
 .btn-glass-primary {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.3), rgba(191, 10, 48, 0.15));
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.3), rgba(191, 10, 48, 0.1));
     border: 1px solid rgba(0, 40, 104, 0.4);
     padding: 8px 20px;
     border-radius: 25px;
@@ -255,7 +436,7 @@ body::before {
 }
 
 .btn-glass-primary:hover {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.5), rgba(191, 10, 48, 0.25));
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.5), rgba(191, 10, 48, 0.2));
     transform: translateY(-2px);
     box-shadow: var(--blue-glow);
     color: var(--liberia-white);
@@ -263,7 +444,7 @@ body::before {
 }
 
 .btn-glass-success {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.3), rgba(191, 10, 48, 0.15));
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.3), rgba(191, 10, 48, 0.1));
     border: 1px solid rgba(0, 40, 104, 0.4);
     padding: 12px 30px;
     border-radius: 25px;
@@ -273,7 +454,7 @@ body::before {
 }
 
 .btn-glass-success:hover {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.5), rgba(191, 10, 48, 0.25));
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.5), rgba(191, 10, 48, 0.2));
     transform: translateY(-2px);
     box-shadow: var(--blue-glow);
 }
@@ -325,8 +506,8 @@ body::before {
 
 /* Inputs */
 .glass-input {
-    background: rgba(0, 20, 50, 0.7);
-    border: 1px solid rgba(0, 40, 104, 0.3);
+    background: rgba(5, 10, 20, 0.8);
+    border: 1px solid rgba(0, 40, 104, 0.4);
     border-radius: 10px;
     padding: 10px 15px;
     color: var(--liberia-white);
@@ -335,7 +516,7 @@ body::before {
 }
 
 .glass-input:focus {
-    background: rgba(0, 20, 50, 0.9);
+    background: rgba(5, 10, 20, 0.95);
     border-color: var(--liberia-blue);
     outline: none;
     color: var(--liberia-white);
@@ -353,7 +534,7 @@ body::before {
 }
 
 .glass-table th {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.3), rgba(191, 10, 48, 0.1));
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.25), rgba(191, 10, 48, 0.08));
     padding: 12px;
     text-align: left;
     font-weight: 600;
@@ -363,12 +544,12 @@ body::before {
 
 .glass-table td {
     padding: 12px;
-    border-bottom: 1px solid rgba(0, 40, 104, 0.2);
+    border-bottom: 1px solid rgba(0, 40, 104, 0.15);
     color: rgba(255, 255, 255, 0.9);
 }
 
 .glass-table tr:hover {
-    background: rgba(0, 40, 104, 0.15);
+    background: rgba(0, 40, 104, 0.1);
 }
 
 /* Badges */
@@ -389,33 +570,15 @@ body::before {
 
 /* Modal Glass */
 .glass-modal {
-    background: rgba(0, 20, 50, 0.98);
+    background: rgba(5, 10, 20, 0.98);
     backdrop-filter: blur(20px);
     border: 1px solid var(--liberia-blue);
     border-radius: 20px;
 }
 
 .glass-modal-header {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.3), rgba(191, 10, 48, 0.1));
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.25), rgba(191, 10, 48, 0.08));
     border-bottom: 1px solid var(--liberia-blue);
-}
-
-/* Task Cards */
-.task-card {
-    background: rgba(0, 20, 50, 0.6);
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 10px;
-    border-left: 3px solid var(--liberia-blue);
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.task-card:hover {
-    transform: translateY(-3px);
-    background: rgba(0, 40, 104, 0.2);
-    border-left-color: var(--liberia-white);
-    box-shadow: var(--blue-glow);
 }
 
 /* Glass Card Hover Effect */
@@ -432,23 +595,6 @@ body::before {
 }
 
 .glass-card-hover:hover {
-    background: rgba(0, 40, 104, 0.2);
-    transform: translateX(5px);
-}
-
-.activity-item, .schedule-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.activity-item:hover, .schedule-item:hover {
     background: rgba(0, 40, 104, 0.2);
     transform: translateX(5px);
 }
@@ -496,7 +642,9 @@ body::before {
     }
     
     .stat-icon i {
-        font-size: 1.8rem;
+        font-size: 1.2rem;
+        width: 35px;
+        height: 35px;
     }
     
     .stat-info h3 {
@@ -571,14 +719,14 @@ body::before {
     }
 }
 
-/* Scrollbar - Blue dominant */
+/* Scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(0, 20, 50, 0.8);
+    background: rgba(5, 10, 20, 0.8);
     border-radius: 10px;
 }
 
@@ -594,7 +742,7 @@ body::before {
 /* SweetAlert2 custom styling */
 .swal2-popup {
     backdrop-filter: blur(20px);
-    background: rgba(0, 20, 50, 0.98) !important;
+    background: rgba(5, 10, 20, 0.98) !important;
     border: 1px solid var(--liberia-blue);
     border-radius: 20px;
 }
@@ -604,7 +752,7 @@ body::before {
 }
 
 .swal2-input, .swal2-select, .swal2-textarea, .swal2-file {
-    background: rgba(0, 20, 50, 0.8) !important;
+    background: rgba(5, 10, 20, 0.9) !important;
     border: 1px solid var(--liberia-blue) !important;
     color: var(--liberia-white) !important;
     border-radius: 10px !important;
@@ -646,7 +794,7 @@ body::before {
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(5, 10, 20, 0.5);
 }
 
 .chat-user-item:hover {
@@ -731,14 +879,14 @@ body::before {
 }
 
 .chat-message-bubble {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
     padding: 10px 15px;
     border-radius: 18px;
     max-width: 100%;
 }
 
 .chat-message.own .chat-message-bubble {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.2), rgba(191, 10, 48, 0.1));
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.2), rgba(191, 10, 48, 0.08));
 }
 
 .chat-message-name {
@@ -834,7 +982,7 @@ body::before {
 
 /* Glass Badge */
 .glass-badge {
-    background: rgba(0, 20, 50, 0.7);
+    background: rgba(5, 10, 20, 0.7);
     border-radius: 20px;
     padding: 6px 12px;
     font-size: 0.85rem;
@@ -851,7 +999,7 @@ body::before {
 
 /* Glass Info Cards */
 .glass-info-card {
-    background: rgba(0, 20, 50, 0.6);
+    background: rgba(5, 10, 20, 0.5);
     border-radius: 16px;
     padding: 20px;
     text-align: center;
@@ -860,7 +1008,9 @@ body::before {
 
 .glass-info-card i {
     font-size: 2rem;
-    color: var(--liberia-blue);
+    background: rgba(0, 40, 104, 0.3);
+    padding: 12px;
+    border-radius: 50%;
     margin-bottom: 10px;
 }
 
@@ -878,7 +1028,7 @@ body::before {
 
 /* Glass Admin Cards */
 .glass-admin-card {
-    background: rgba(0, 20, 50, 0.6);
+    background: rgba(5, 10, 20, 0.5);
     backdrop-filter: blur(10px);
     border-radius: 16px;
     padding: 30px 20px;
@@ -888,17 +1038,26 @@ body::before {
     transition: all 0.3s ease;
 }
 
+.glass-admin-card i {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    background: rgba(0, 40, 104, 0.3);
+    padding: 15px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
 .glass-admin-card:hover {
     transform: translateY(-5px);
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.2), rgba(191, 10, 48, 0.1));
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.15), rgba(191, 10, 48, 0.08));
     border-color: var(--liberia-white);
     box-shadow: var(--blue-glow);
 }
 
-.glass-admin-card i {
-    font-size: 2.5rem;
-    margin-bottom: 10px;
-    color: var(--liberia-blue);
+.glass-admin-card:hover i {
+    background: var(--liberia-blue);
+    transform: scale(1.1);
+    box-shadow: var(--blue-glow);
 }
 
 .glass-admin-card h5 {
@@ -913,7 +1072,10 @@ body::before {
     }
     
     .stat-icon i {
-        font-size: 1.3rem;
+        font-size: 1rem;
+        width: 30px;
+        height: 30px;
+        padding: 6px;
     }
     
     .stat-info h3 {
@@ -930,6 +1092,7 @@ body::before {
     
     .glass-info-card i {
         font-size: 1.2rem;
+        padding: 8px;
     }
     
     .glass-info-card h4 {
@@ -978,6 +1141,7 @@ body::before {
     
     .glass-admin-card i {
         font-size: 1.2rem;
+        padding: 8px;
     }
     
     .glass-admin-card h5 {
@@ -986,12 +1150,6 @@ body::before {
 }
 
 /* Liberia Flag Animation */
-@keyframes liberiaWave {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-}
-
-/* Special effect for Liberia's star */
 @keyframes pulse {
     0%, 100% { opacity: 0.3; transform: scale(1); }
     50% { opacity: 0.8; transform: scale(1.1); }
@@ -1005,11 +1163,12 @@ body::after {
     right: 20px;
     font-size: 28px;
     color: var(--liberia-white);
-    opacity: 0.4;
-    animation: pulse 2s infinite;
+    opacity: 0.3;
+    animation: pulse 3s infinite;
     font-weight: bold;
     text-shadow: var(--blue-glow);
     z-index: 999;
+    pointer-events: none;
 }
 
 /* Blue accent text */
@@ -1027,3 +1186,13 @@ body::after {
 .text-warning {
     color: #ff9800 !important;
 }
+
+/* Unique icon backgrounds summary:
+ * - Dashboard stats: Each stat card has different icon background (blue, red, white, mixed)
+ * - Sidebar icons: Blue glass circular backgrounds on hover
+ * - Activity icons: Different colors based on action type
+ * - Task icons: Blue tint backgrounds
+ * - Leave icons: Red tint backgrounds
+ * - Admin cards: Blue glass backgrounds on hover
+ * - Info cards: Blue glass circular backgrounds
+ */
