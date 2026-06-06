@@ -7,6 +7,11 @@ let canvas = null;
 let ctx = null;
 let calendar = null;
 
+// Chat variables
+let currentChatType = 'group';
+let currentChatUserId = null;
+let chatUnsubscribe = null;
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
     updateDateTime();
@@ -38,7 +43,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Employee role:', userRole);
         console.log('Is admin?', isAdmin);
         
-        document.getElementById('userRole').innerHTML = `<strong>${currentEmployee.position || 'Employee'}</strong><br><small>${currentEmployee.fullName}</small>`;
+        // Display user role with nickname if available
+        const displayName = currentEmployee.nickname || currentEmployee.fullName;
+        document.getElementById('userRole').innerHTML = `<strong>${currentEmployee.position || 'Employee'}</strong><br><small>${displayName}</small>`;
         
         // Show admin menu in sidebar
         const adminMenu = document.getElementById('adminMenu');
@@ -50,6 +57,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const adminNavBtn = document.getElementById('adminNavBtn');
         if (adminNavBtn) {
             adminNavBtn.style.display = isAdmin ? 'inline-block' : 'none';
+        }
+        
+        // Show edit profile button
+        const editProfileBtn = document.getElementById('editProfileBtn');
+        if (editProfileBtn) {
+            editProfileBtn.style.display = 'inline-block';
         }
         
         await loadDashboardData();
@@ -827,7 +840,7 @@ async function loadExpenses() {
         const snapshot = await getDocs(q);
         const container = document.getElementById('expensesList');
         if (!container) return;
-        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></td></div>';
+        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>';
         const tbody = container.querySelector('tbody');
         
         snapshot.forEach(doc => {
@@ -1277,6 +1290,210 @@ function showReviewForm(employeeId) {
     }).then(() => { loadPerformanceReviews(); });
 };
 
+// ========== CHAT FUNCTIONS ==========
+window.showGroupChat = function() {
+    currentChatType = 'group';
+    currentChatUserId = null;
+    document.querySelectorAll('#chatUsersList .chat-user-item').forEach(item => item.classList.remove('active'));
+    const firstItem = document.querySelector('#chatUsersList .chat-user-item:first-child');
+    if (firstItem) firstItem.classList.add('active');
+    loadChatMessages('group', null);
+};
+
+window.showDMs = function() {
+    currentChatType = 'dm';
+    loadChatMessages('dm', currentChatUserId);
+};
+
+async function loadChatUsers() {
+    const snapshot = await getDocs(collection(db, 'employees'));
+    const usersList = document.getElementById('chatUsersList');
+    if (!usersList) return;
+    
+    usersList.innerHTML = `
+        <div class="chat-user-item ${currentChatType === 'group' ? 'active' : ''}" onclick="showGroupChat()">
+            <div class="chat-user-avatar"><i class="fas fa-users"></i></div>
+            <div class="chat-user-info">
+                <div class="chat-user-name">Group Chat</div>
+                <div class="chat-user-status">Everyone</div>
+            </div>
+        </div>
+        <div class="chat-divider"><hr><span>Direct Messages</span><hr></div>
+    `;
+    
+    snapshot.forEach(doc => {
+        const emp = doc.data();
+        if (emp.id === currentEmployee.id) return;
+        const displayName = emp.nickname || emp.fullName;
+        const initial = displayName.charAt(0).toUpperCase();
+        usersList.innerHTML += `
+            <div class="chat-user-item ${currentChatUserId === doc.id ? 'active' : ''}" onclick="startDM('${doc.id}')">
+                ${emp.profilePictureUrl ? 
+                    `<img src="${emp.profilePictureUrl}" class="chat-user-avatar" style="object-fit: cover;">` :
+                    `<div class="chat-user-avatar">${initial}</div>`
+                }
+                <div class="chat-user-info">
+                    <div class="chat-user-name">${escapeHtml(displayName)}</div>
+                    <div class="chat-user-status">${emp.position || 'Employee'}</div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+window.startDM = function(userId) {
+    currentChatType = 'dm';
+    currentChatUserId = userId;
+    loadChatUsers();
+    loadChatMessages('dm', userId);
+};
+
+async function loadChatMessages(type, userId) {
+    if (chatUnsubscribe) chatUnsubscribe();
+    
+    let q;
+    if (type === 'group') {
+        q = query(collection(db, 'chat_messages'), where('type', '==', 'group'), orderBy('timestamp', 'asc'), limit(200));
+    } else {
+        q = query(collection(db, 'chat_messages'), 
+            where('type', '==', 'dm'),
+            where('participants', 'array-contains', currentEmployee.id),
+            orderBy('timestamp', 'asc'), limit(200));
+    }
+    
+    chatUnsubscribe = onSnapshot(q, async (snapshot) => {
+        let messages = [];
+        for (const doc of snapshot.docs) {
+            const msg = doc.data();
+            if (type === 'dm') {
+                if (msg.senderId === userId || msg.receiverId === userId || 
+                    (msg.senderId === currentEmployee.id && msg.receiverId === userId) ||
+                    (msg.senderId === userId && msg.receiverId === currentEmployee.id)) {
+                    messages.push({ id: doc.id, ...msg });
+                }
+            } else {
+                messages.push({ id: doc.id, ...msg });
+            }
+        }
+        messages.sort((a, b) => (a.timestamp?.toDate() || 0) - (b.timestamp?.toDate() || 0));
+        await displayMessages(messages);
+    });
+}
+
+async function displayMessages(messages) {
+    const container = document.getElementById('chatMessages');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    for (const msg of messages) {
+        const senderDoc = await getDoc(doc(db, 'employees', msg.senderId));
+        const sender = senderDoc.data();
+        const displayName = sender?.nickname || sender?.fullName || 'Unknown';
+        const initial = displayName.charAt(0).toUpperCase();
+        const isOwn = msg.senderId === currentEmployee.id;
+        
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
+        msgDiv.innerHTML = `
+            ${!isOwn ? `
+                ${sender?.profilePictureUrl ? 
+                    `<img src="${sender.profilePictureUrl}" class="chat-message-avatar" style="object-fit: cover;">` :
+                    `<div class="chat-message-avatar">${initial}</div>`
+                }
+            ` : ''}
+            <div class="chat-message-bubble">
+                <div class="chat-message-name">${escapeHtml(displayName)} ${sender?.nickname ? `(${sender.fullName})` : ''}</div>
+                <div class="chat-message-text">${escapeHtml(msg.message)}</div>
+                <div class="chat-message-time">${msg.timestamp?.toDate().toLocaleTimeString()}</div>
+            </div>
+        `;
+        container.appendChild(msgDiv);
+    }
+    container.scrollTop = container.scrollHeight;
+}
+
+window.sendChatMessage = async function() {
+    const input = document.getElementById('chatMessageInput');
+    const message = input.value.trim();
+    if (!message) return;
+    
+    let messageData = {
+        message: message,
+        senderId: currentEmployee.id,
+        senderName: currentEmployee.fullName,
+        timestamp: Timestamp.now(),
+        type: currentChatType
+    };
+    
+    if (currentChatType === 'dm' && currentChatUserId) {
+        messageData.receiverId = currentChatUserId;
+        messageData.participants = [currentEmployee.id, currentChatUserId];
+    }
+    
+    await addDoc(collection(db, 'chat_messages'), messageData);
+    input.value = '';
+}
+
+// ========== PROFILE FUNCTIONS ==========
+window.previewProfilePicture = function(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('profilePicturePreview');
+            preview.innerHTML = `<img src="${e.target.result}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+};
+
+window.updateProfile = async function() {
+    const nickname = document.getElementById('nicknameInput').value;
+    const profilePicture = document.getElementById('profilePictureInput').files[0];
+    
+    let profilePictureUrl = currentEmployee.profilePictureUrl;
+    
+    if (profilePicture) {
+        const storageRef = ref(storage, `profilePictures/${currentEmployee.id}/${Date.now()}_${profilePicture.name}`);
+        await uploadBytes(storageRef, profilePicture);
+        profilePictureUrl = await getDownloadURL(storageRef);
+    }
+    
+    await updateDoc(doc(db, 'employees', currentEmployee.id), {
+        nickname: nickname || null,
+        profilePictureUrl: profilePictureUrl || null
+    });
+    
+    currentEmployee.nickname = nickname;
+    currentEmployee.profilePictureUrl = profilePictureUrl;
+    localStorage.setItem('currentUser', JSON.stringify(currentEmployee));
+    
+    bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
+    Swal.fire({ title: 'Success', text: 'Profile updated!', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+    
+    // Update display
+    const displayName = currentEmployee.nickname || currentEmployee.fullName;
+    document.getElementById('userRole').innerHTML = `<strong>${currentEmployee.position || 'Employee'}</strong><br><small>${displayName}</small>`;
+    loadChatUsers();
+};
+
+window.showEditProfileModal = function() {
+    document.getElementById('nicknameInput').value = currentEmployee.nickname || '';
+    const preview = document.getElementById('profilePicturePreview');
+    if (currentEmployee.profilePictureUrl) {
+        preview.innerHTML = `<img src="${currentEmployee.profilePictureUrl}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">`;
+    } else {
+        preview.innerHTML = '<i class="fas fa-user fa-3x"></i>';
+    }
+    const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
+    modal.show();
+};
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // ===== ADMIN FUNCTIONS =====
 window.showAdminEmployees = function() {
     loadEmployees();
@@ -1439,7 +1656,7 @@ window.generateReport = async function() {
             <table class="glass-table">
                 <thead><tr><th>Employee</th><th>Days Present</th><th>Total Hours</th></tr></thead>
                 <tbody>
-                    ${Object.values(employeeSummary).map(emp => `<tr><td>${emp.name}</td><td>${emp.present}</td><td>${emp.hours.toFixed(1)} hrs</td></tr>`).join('')}
+                    ${Object.values(employeeSummary).map(emp => `<tr><td>${emp.name}</td><td>${emp.present}</td><td>${emp.hours.toFixed(1)} hrs</td>`).join('')}
                 </tbody>
             </table>
         </div>
@@ -1487,15 +1704,16 @@ window.calculatePayroll = async function() {
             <table class="glass-table">
                 <thead><tr><th>Employee</th><th>Position</th><th>Hours Worked</th><th>Monthly Salary</th><th>Pro-rated Amount</th></tr></thead>
                 <tbody>
-                    ${payroll.map(p => `<tr><td>${p.name}</td><td>${p.position}</td><td>${p.hours}</td><td>$${p.salary}</td><td>$${p.amount}</td></tr>`).join('')}
+                    ${payroll.map(p => `<tr><td>${p.name}</td><td>${p.position}</td><td>${p.hours}</td><td>$${p.salary}</td><td>$${p.amount}</td>`).join('')}
                 </tbody>
             </table>
         </div>
     `;
 };
 
+// ===== SHOW SECTION =====
 window.showSection = function(section) {
-    const sections = ['dashboard', 'attendance', 'appointments', 'tasks', 'leave', 'expenses', 'documents', 'performance', 'announcements', 'admin'];
+    const sections = ['dashboard', 'attendance', 'appointments', 'tasks', 'leave', 'expenses', 'documents', 'performance', 'announcements', 'chat', 'admin'];
     sections.forEach(s => {
         const el = document.getElementById(s + 'Section');
         if (el) el.style.display = s === section ? 'block' : 'none';
@@ -1513,6 +1731,10 @@ window.showSection = function(section) {
     if (section === 'documents') loadDocuments();
     if (section === 'performance') loadPerformanceReviews();
     if (section === 'announcements') loadAnnouncements();
+    if (section === 'chat') {
+        loadChatUsers();
+        showGroupChat();
+    }
 };
 
 window.logout = function() {
