@@ -11,6 +11,8 @@
     --blue-glow: 0 0 20px rgba(0, 40, 104, 0.6);
     --red-glow: 0 0 15px rgba(191, 10, 48, 0.4);
     --white-glow: 0 0 10px rgba(255, 255, 255, 0.3);
+    --secondary-text: rgba(220, 220, 255, 0.85);
+    --muted-text: rgba(200, 200, 255, 0.7);
 }
 
 * {
@@ -107,7 +109,7 @@ body::before {
     padding: 12px 20px;
     margin: 0 10px;
     border-radius: 12px;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.9);
     text-decoration: none;
     transition: all 0.3s ease;
     position: relative;
@@ -122,7 +124,11 @@ body::before {
     padding: 8px;
     border-radius: 50%;
     text-align: center;
-    color: #ffffff;
+    color: #000000;
+}
+
+.glass-nav-item span {
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .glass-nav-item:hover {
@@ -133,7 +139,7 @@ body::before {
 
 .glass-nav-item:hover i {
     background: rgba(255, 255, 255, 0.25);
-    color: #ffffff;
+    color: #000000;
     transform: scale(1.1);
     box-shadow: var(--blue-glow);
 }
@@ -145,7 +151,7 @@ body::before {
 
 .glass-nav-item.active i {
     background: rgba(255, 255, 255, 0.25);
-    color: #ffffff;
+    color: #000000;
     box-shadow: var(--blue-glow);
 }
 
@@ -195,11 +201,11 @@ body::before {
     border-bottom: 1px solid rgba(0, 40, 104, 0.3);
     font-weight: 600;
     font-size: 1rem;
-    color: var(--liberia-white);
+    color: #ffffff;
     letter-spacing: 0.3px;
 }
 
-/* STAT CARDS - Transparent white icon background with BLACK TEXT */
+/* STAT CARDS */
 .glass-stat-card {
     background: rgba(5, 10, 20, 0.7);
     backdrop-filter: blur(10px);
@@ -294,7 +300,13 @@ body::before {
 }
 
 .activity-item .text-muted {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(200, 220, 255, 0.9);
+    font-size: 0.7rem;
+}
+
+.activity-item small {
+    color: rgba(180, 200, 255, 0.85);
+    font-size: 0.65rem;
 }
 
 .activity-item:hover {
@@ -308,7 +320,7 @@ body::before {
     color: #000000;
 }
 
-/* SCHEDULE ITEMS */
+/* SCHEDULE ITEMS - Upcoming schedule text improved */
 .schedule-item {
     display: flex;
     align-items: center;
@@ -342,7 +354,13 @@ body::before {
 }
 
 .schedule-item .text-muted {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(200, 220, 255, 0.9);
+    font-size: 0.7rem;
+}
+
+.schedule-item small {
+    color: rgba(180, 200, 255, 0.85);
+    font-size: 0.65rem;
 }
 
 .schedule-item:hover {
@@ -373,14 +391,23 @@ body::before {
     padding: 4px 12px;
     border-radius: 20px;
     display: inline-block;
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .task-card .text-muted {
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(200, 220, 255, 0.85);
+    font-size: 0.7rem;
 }
 
 .task-card small {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(180, 200, 255, 0.8);
+    font-size: 0.65rem;
+}
+
+.task-card p {
+    color: rgba(220, 235, 255, 0.9);
+    font-size: 0.8rem;
 }
 
 .task-card:hover {
@@ -388,6 +415,11 @@ body::before {
     background: rgba(0, 40, 104, 0.2);
     border-left-color: var(--liberia-white);
     box-shadow: var(--blue-glow);
+}
+
+.task-card:hover .text-muted,
+.task-card:hover small {
+    color: rgba(255, 255, 255, 0.95);
 }
 
 .task-card i.fa-tasks {
@@ -419,7 +451,13 @@ body::before {
 }
 
 .leave-card-mini .text-muted {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(200, 220, 255, 0.85);
+    font-size: 0.7rem;
+}
+
+.leave-card-mini small {
+    color: rgba(180, 200, 255, 0.8);
+    font-size: 0.65rem;
 }
 
 /* EXPENSE CARDS */
@@ -438,7 +476,17 @@ body::before {
     font-size: 0.8rem;
 }
 
-/* CHAT STYLES - White bubble with black text */
+.expense-card-mini .text-muted {
+    color: rgba(200, 220, 255, 0.85);
+    font-size: 0.7rem;
+}
+
+.expense-card-mini small {
+    color: rgba(180, 200, 255, 0.8);
+    font-size: 0.65rem;
+}
+
+/* CHAT STYLES */
 .chat-sidebar {
     border-right: 1px solid var(--liberia-blue);
     padding: 15px;
@@ -502,13 +550,13 @@ body::before {
 .chat-user-name {
     font-weight: 600;
     font-size: 0.9rem;
-    color: var(--liberia-white);
+    color: #ffffff;
 }
 
 .chat-user-status {
     font-size: 0.7rem;
-    opacity: 0.6;
-    color: rgba(255,255,255,0.6);
+    opacity: 0.7;
+    color: rgba(200, 220, 255, 0.8);
 }
 
 .chat-messages {
@@ -643,13 +691,13 @@ body::before {
     border-radius: 20px;
     text-decoration: none;
     font-size: 0.8rem;
-    color: var(--liberia-white);
+    color: rgba(200, 220, 255, 0.9);
 }
 
 .chat-file-link:hover {
     background: rgba(0, 40, 104, 0.3);
     text-decoration: underline;
-    color: var(--liberia-white);
+    color: #ffffff;
 }
 
 /* Chat Read Receipts */
@@ -671,7 +719,7 @@ body::before {
     border: 1px solid rgba(0, 40, 104, 0.4);
     padding: 8px 20px;
     border-radius: 25px;
-    color: var(--liberia-white);
+    color: #ffffff;
     font-weight: 500;
     transition: all 0.3s ease;
 }
@@ -680,7 +728,7 @@ body::before {
     background: linear-gradient(135deg, rgba(0, 40, 104, 0.5), rgba(191, 10, 48, 0.2));
     transform: translateY(-2px);
     box-shadow: var(--blue-glow);
-    color: var(--liberia-white);
+    color: #ffffff;
     border-color: var(--liberia-blue);
 }
 
@@ -689,7 +737,7 @@ body::before {
     border: 1px solid rgba(0, 40, 104, 0.4);
     padding: 12px 30px;
     border-radius: 25px;
-    color: var(--liberia-white);
+    color: #ffffff;
     font-weight: 600;
     transition: all 0.3s ease;
 }
@@ -705,14 +753,14 @@ body::before {
     border: 1px solid rgba(191, 10, 48, 0.3);
     padding: 12px 30px;
     border-radius: 25px;
-    color: #ff8a8a;
+    color: #ffaaaa;
     font-weight: 600;
     transition: all 0.3s ease;
 }
 
 .btn-glass-danger:hover {
     background: rgba(191, 10, 48, 0.3);
-    color: var(--liberia-white);
+    color: #ffffff;
     box-shadow: var(--red-glow);
 }
 
@@ -721,13 +769,13 @@ body::before {
     border: 1px solid rgba(191, 10, 48, 0.3);
     padding: 6px 15px;
     border-radius: 20px;
-    color: #ff8a8a;
+    color: #ffaaaa;
     transition: all 0.3s ease;
 }
 
 .btn-glass-logout:hover {
     background: rgba(191, 10, 48, 0.3);
-    color: var(--liberia-white);
+    color: #ffffff;
 }
 
 .btn-glass-sm {
@@ -735,7 +783,7 @@ body::before {
     border: 1px solid rgba(0, 40, 104, 0.3);
     padding: 5px 15px;
     border-radius: 20px;
-    color: var(--liberia-white);
+    color: rgba(220, 235, 255, 0.9);
     font-size: 0.85rem;
     transition: all 0.3s ease;
 }
@@ -743,6 +791,7 @@ body::before {
 .btn-glass-sm:hover {
     background: rgba(0, 40, 104, 0.3);
     border-color: var(--liberia-blue);
+    color: #ffffff;
 }
 
 /* Inputs */
@@ -751,7 +800,7 @@ body::before {
     border: 1px solid rgba(0, 40, 104, 0.4);
     border-radius: 10px;
     padding: 10px 15px;
-    color: var(--liberia-white);
+    color: #ffffff;
     width: 100%;
     transition: all 0.3s ease;
 }
@@ -760,12 +809,12 @@ body::before {
     background: rgba(5, 10, 20, 0.95);
     border-color: var(--liberia-blue);
     outline: none;
-    color: var(--liberia-white);
+    color: #ffffff;
     box-shadow: var(--blue-glow);
 }
 
 .glass-input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(200, 220, 255, 0.5);
 }
 
 /* Tables */
@@ -779,14 +828,14 @@ body::before {
     padding: 12px;
     text-align: left;
     font-weight: 600;
-    color: var(--liberia-white);
+    color: #ffffff;
     border-bottom: 2px solid var(--liberia-blue);
 }
 
 .glass-table td {
     padding: 12px;
     border-bottom: 1px solid rgba(0, 40, 104, 0.15);
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(220, 240, 255, 0.9);
 }
 
 .glass-table tr:hover {
@@ -802,12 +851,12 @@ body::before {
     font-weight: 600;
 }
 
-.status-present { background: rgba(0, 40, 104, 0.4); color: #88ccff; border: 1px solid var(--liberia-blue); }
-.status-late { background: rgba(191, 10, 48, 0.3); color: #ffaaaa; border: 1px solid var(--liberia-red); }
-.status-absent { background: rgba(191, 10, 48, 0.2); color: #ff8888; border: 1px solid rgba(191, 10, 48, 0.5); }
-.status-pending { background: rgba(255, 255, 255, 0.1); color: #ffcc88; border: 1px solid rgba(255, 255, 255, 0.3); }
-.status-approved { background: rgba(0, 40, 104, 0.4); color: #88ccff; border: 1px solid var(--liberia-blue); }
-.status-rejected { background: rgba(191, 10, 48, 0.3); color: #ffaaaa; border: 1px solid var(--liberia-red); }
+.status-present { background: rgba(0, 40, 104, 0.4); color: #aaddff; border: 1px solid var(--liberia-blue); }
+.status-late { background: rgba(191, 10, 48, 0.3); color: #ffbbbb; border: 1px solid var(--liberia-red); }
+.status-absent { background: rgba(191, 10, 48, 0.2); color: #ffaaaa; border: 1px solid rgba(191, 10, 48, 0.5); }
+.status-pending { background: rgba(255, 255, 255, 0.1); color: #ffdd99; border: 1px solid rgba(255, 255, 255, 0.3); }
+.status-approved { background: rgba(0, 40, 104, 0.4); color: #aaddff; border: 1px solid var(--liberia-blue); }
+.status-rejected { background: rgba(191, 10, 48, 0.3); color: #ffbbbb; border: 1px solid var(--liberia-red); }
 
 /* Modal Glass */
 .glass-modal {
@@ -820,6 +869,12 @@ body::before {
 .glass-modal-header {
     background: linear-gradient(135deg, rgba(0, 40, 104, 0.25), rgba(191, 10, 48, 0.08));
     border-bottom: 1px solid var(--liberia-blue);
+    color: #ffffff;
+}
+
+/* Modal body text */
+.modal-body label {
+    color: rgba(220, 240, 255, 0.9);
 }
 
 /* Glass Card Hover Effect */
@@ -913,6 +968,16 @@ body::before {
     .glass-table {
         min-width: 600px;
     }
+    
+    .schedule-item .text-muted,
+    .activity-item .text-muted {
+        font-size: 0.6rem;
+    }
+    
+    .schedule-item small,
+    .activity-item small {
+        font-size: 0.55rem;
+    }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
@@ -974,13 +1039,13 @@ body::before {
 }
 
 .swal2-title, .swal2-html-container {
-    color: var(--liberia-white) !important;
+    color: #ffffff !important;
 }
 
 .swal2-input, .swal2-select, .swal2-textarea, .swal2-file {
     background: rgba(5, 10, 20, 0.9) !important;
     border: 1px solid var(--liberia-blue) !important;
-    color: var(--liberia-white) !important;
+    color: #ffffff !important;
     border-radius: 10px !important;
 }
 
@@ -1013,6 +1078,7 @@ body::before {
     padding: 6px 12px;
     font-size: 0.85rem;
     border: 1px solid var(--liberia-blue);
+    color: rgba(220, 240, 255, 0.9);
 }
 
 /* Responsive table */
@@ -1103,6 +1169,10 @@ body::before {
     transform: scale(1.1);
     box-shadow: var(--blue-glow);
     color: #000000;
+}
+
+.glass-admin-card:hover h5 {
+    background: #ffffff;
 }
 
 /* Mobile Responsive Additions */
@@ -1228,4 +1298,35 @@ body::after {
 /* Warning message color */
 .text-warning {
     color: #ff9800 !important;
+}
+
+/* Global secondary text improvements */
+.text-muted {
+    color: rgba(200, 220, 255, 0.85) !important;
+}
+
+small, .small {
+    color: rgba(180, 200, 255, 0.8) !important;
+}
+
+.alert {
+    color: #000000 !important;
+}
+
+.alert-success {
+    background: rgba(76, 175, 80, 0.2) !important;
+    color: #a5d6a7 !important;
+    border: 1px solid rgba(76, 175, 80, 0.5) !important;
+}
+
+.alert-warning {
+    background: rgba(255, 152, 0, 0.2) !important;
+    color: #ffcc80 !important;
+    border: 1px solid rgba(255, 152, 0, 0.5) !important;
+}
+
+.alert-info {
+    background: rgba(33, 150, 243, 0.2) !important;
+    color: #90caf9 !important;
+    border: 1px solid rgba(33, 150, 243, 0.5) !important;
 }
