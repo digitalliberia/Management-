@@ -20,6 +20,9 @@
                 <span class="brand-text">Digital Liberia HR</span>
             </a>
             <div class="ms-auto d-flex align-items-center gap-3">
+                <button id="editProfileBtn" onclick="showEditProfileModal()" class="btn-glass-primary" style="display: none;">
+                    <i class="fas fa-user-edit"></i>
+                </button>
                 <button id="adminNavBtn" onclick="window.location.href='admin.html'" class="btn-glass-primary" style="display: none;">
                     <i class="fas fa-user-shield"></i> Admin
                 </button>
@@ -78,6 +81,10 @@
                     <a href="#" class="glass-nav-item" onclick="showSection('announcements')">
                         <i class="fas fa-bullhorn"></i>
                         <span>Announcements</span>
+                    </a>
+                    <a href="#" class="glass-nav-item" onclick="showSection('chat')">
+                        <i class="fas fa-comments"></i>
+                        <span>Team Chat</span>
                     </a>
                     <a href="#" class="glass-nav-item" id="adminMenu" style="display: none;" onclick="showSection('admin')">
                         <i class="fas fa-user-shield"></i>
@@ -284,6 +291,33 @@
                     </div>
                 </div>
 
+                <!-- Chat Section -->
+                <div id="chatSection" style="display: none;" class="glass-card fade-in">
+                    <div class="glass-card-inner">
+                        <div class="card-header-glass">
+                            <i class="fas fa-comments"></i> Team Chat
+                            <div class="float-end">
+                                <button class="btn-glass-primary btn-sm me-2" onclick="showGroupChat()">💬 Group Chat</button>
+                                <button class="btn-glass-primary btn-sm" onclick="showDMs()">📩 Direct Messages</button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3 chat-sidebar">
+                                <div id="chatUsersList" class="chat-users-list"></div>
+                            </div>
+                            <div class="col-md-9 chat-main">
+                                <div id="chatMessages" class="chat-messages"></div>
+                                <div class="chat-input-container mt-3">
+                                    <div class="d-flex gap-2">
+                                        <input type="text" id="chatMessageInput" class="glass-input flex-grow-1" placeholder="Type your message...">
+                                        <button onclick="sendChatMessage()" class="btn-glass-primary"><i class="fas fa-paper-plane"></i> Send</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Admin Section -->
                 <div id="adminSection" style="display: none;" class="glass-card fade-in">
                     <div class="row g-3">
@@ -358,7 +392,30 @@
         </div>
     </div>
 
-    <!-- Modals -->
+    <!-- Edit Profile Modal -->
+    <div class="modal fade" id="editProfileModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-modal">
+                <div class="modal-header glass-modal-header">
+                    <h5><i class="fas fa-user-edit me-2"></i>Edit Profile</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div id="profilePicturePreview" class="profile-picture-preview mx-auto" style="background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; width: 100px; height: 100px; border-radius: 50%;">
+                        <i class="fas fa-user fa-3x"></i>
+                    </div>
+                    <input type="file" id="profilePictureInput" accept="image/*" class="glass-input mb-3" onchange="previewProfilePicture(this)">
+                    <div class="mb-3">
+                        <label>Nickname (Display Name)</label>
+                        <input type="text" id="nicknameInput" class="glass-input" placeholder="Enter a nickname">
+                    </div>
+                    <button onclick="updateProfile()" class="btn-glass-primary w-100">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Other Modals -->
     <div class="modal fade" id="appointmentModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-calendar-plus me-2"></i>Schedule Appointment</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Title</label><input type="text" id="appointmentTitle" class="glass-input"></div><div class="mb-3"><label>Type</label><select id="appointmentType" class="glass-input"><option>Client Meeting</option><option>Internal Meeting</option><option>Training</option><option>Performance Review</option><option>Interview</option></select></div><div class="mb-3"><label>Date & Time</label><input type="datetime-local" id="appointmentDateTime" class="glass-input"></div><div class="mb-3"><label>Duration (minutes)</label><input type="number" id="appointmentDuration" class="glass-input" value="60"></div><div class="mb-3"><label>Location/Meeting Link</label><input type="text" id="appointmentLocation" class="glass-input" placeholder="Conference Room A / Zoom Link"></div><div class="mb-3"><label>Description</label><textarea id="appointmentDescription" rows="3" class="glass-input"></textarea></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn-glass-primary" onclick="createAppointment()">Schedule</button></div></div></div></div>
 
     <div class="modal fade" id="taskModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-tasks me-2"></i>Create Task</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Task Title</label><input type="text" id="taskTitle" class="glass-input"></div><div class="mb-3"><label>Priority</label><select id="taskPriority" class="glass-input"><option>Low</option><option>Medium</option><option>High</option><option>Urgent</option></select></div><div class="mb-3"><label>Due Date</label><input type="date" id="taskDueDate" class="glass-input"></div><div class="mb-3"><label>Description</label><textarea id="taskDescription" rows="3" class="glass-input"></textarea></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn-glass-primary" onclick="createTask()">Create Task</button></div></div></div></div>
