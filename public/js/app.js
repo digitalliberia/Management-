@@ -16,9 +16,6 @@ let calendar = null;
 let currentChatType = 'group';
 let currentChatUserId = null;
 let chatUnsubscribe = null;
-let mediaRecorder = null;
-let audioChunks = [];
-let isRecording = false;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -96,9 +93,6 @@ function addChatAttachmentButtons() {
             <button id="chatFileBtn" class="btn-glass-sm" title="Send File">
                 <i class="fas fa-paperclip"></i>
             </button>
-            <button id="chatVoiceBtn" class="btn-glass-sm" title="Voice Message">
-                <i class="fas fa-microphone"></i>
-            </button>
             <input type="file" id="chatImageInput" accept="image/*" style="display: none;">
             <input type="file" id="chatFileInput" style="display: none;">
         `;
@@ -106,53 +100,8 @@ function addChatAttachmentButtons() {
         
         document.getElementById('chatImageBtn').onclick = () => document.getElementById('chatImageInput').click();
         document.getElementById('chatFileBtn').onclick = () => document.getElementById('chatFileInput').click();
-        document.getElementById('chatVoiceBtn').onclick = toggleVoiceRecording;
         document.getElementById('chatImageInput').onchange = () => sendMediaMessage('image');
         document.getElementById('chatFileInput').onchange = () => sendMediaMessage('file');
-    }
-}
-
-async function toggleVoiceRecording() {
-    const voiceBtn = document.getElementById('chatVoiceBtn');
-    if (!isRecording) {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
-            
-            mediaRecorder.ondataavailable = (event) => {
-                audioChunks.push(event.data);
-            };
-            
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                await sendMediaMessage('voice', audioBlob);
-                stream.getTracks().forEach(track => track.stop());
-            };
-            
-            mediaRecorder.start();
-            isRecording = true;
-            voiceBtn.innerHTML = '<i class="fas fa-stop" style="color: #f44336;"></i>';
-            voiceBtn.classList.add('recording');
-            
-            setTimeout(() => {
-                if (isRecording) stopVoiceRecording();
-            }, 60000); // Auto-stop after 60 seconds
-        } catch (error) {
-            Swal.fire({ title: 'Error', text: 'Microphone access denied', icon: 'error', background: '#000' });
-        }
-    } else {
-        stopVoiceRecording();
-    }
-}
-
-function stopVoiceRecording() {
-    if (mediaRecorder && isRecording) {
-        mediaRecorder.stop();
-        isRecording = false;
-        const voiceBtn = document.getElementById('chatVoiceBtn');
-        voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-        voiceBtn.classList.remove('recording');
     }
 }
 
@@ -166,8 +115,6 @@ async function sendMediaMessage(type, customBlob = null) {
     } else if (type === 'file') {
         inputElement = document.getElementById('chatFileInput');
         file = inputElement.files[0];
-    } else if (type === 'voice' && customBlob) {
-        file = customBlob;
     }
     
     if (!file) return;
@@ -177,7 +124,7 @@ async function sendMediaMessage(type, customBlob = null) {
     
     try {
         const timestamp = Date.now();
-        const fileExtension = file.name ? file.name.split('.').pop() : 'webm';
+        const fileExtension = file.name ? file.name.split('.').pop() : 'bin';
         const filePath = `chat_files/${currentChatType}/${currentChatUserId || 'group'}/${timestamp}_${type}.${fileExtension}`;
         const storageRef = ref(storage, filePath);
         await uploadBytes(storageRef, file);
@@ -200,9 +147,6 @@ async function sendMediaMessage(type, customBlob = null) {
             messageData.message = `📎 Sent a file: ${file.name}`;
             messageData.fileName = file.name;
             messageData.fileSize = file.size;
-        } else if (type === 'voice') {
-            messageData.message = '🎤 Sent a voice message';
-            messageData.duration = '?'; // Could calculate duration if needed
         }
         
         if (currentChatType === 'dm' && currentChatUserId) {
@@ -378,9 +322,9 @@ window.getLocation = function() {
                 if (locationDisplay) {
                     locationDisplay.value = `Lat: ${window.currentLocation.lat.toFixed(6)}, Lng: ${window.currentLocation.lng.toFixed(6)}`;
                 }
-                Swal.fire({ title: 'Success', text: 'Location captured successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+                Swal.fire({ title: 'Success', text: 'Location captured successfully', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
             },
-            (error) => { Swal.fire({ title: 'Error', text: 'Unable to get location: ' + error.message, icon: 'error', background: '#000', confirmButtonColor: '#6c63ff' }); }
+            (error) => { Swal.fire({ title: 'Error', text: 'Unable to get location: ' + error.message, icon: 'error', background: '#000', confirmButtonColor: '#fff' }); }
         );
     }
 };
@@ -407,7 +351,7 @@ window.checkIn = async function() {
             createdAt: Timestamp.now()
         });
         
-        Swal.fire({ title: 'Success', text: 'Checked in successfully!', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+        Swal.fire({ title: 'Success', text: 'Checked in successfully!', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
         
         const checkInBtn = document.getElementById('checkInBtn');
         const checkOutBtn = document.getElementById('checkOutBtn');
@@ -440,7 +384,7 @@ window.checkOut = async function() {
                 updatedAt: Timestamp.now()
             });
             
-            Swal.fire({ title: 'Success', text: 'Checked out successfully!', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+            Swal.fire({ title: 'Success', text: 'Checked out successfully!', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
             
             const checkOutBtn = document.getElementById('checkOutBtn');
             const statusDiv = document.getElementById('attendanceStatus');
@@ -527,6 +471,7 @@ async function loadDashboardData() {
         const unreadAnnouncementsElem = document.getElementById('unreadAnnouncements');
         if (unreadAnnouncementsElem) unreadAnnouncementsElem.textContent = unreadCount;
         
+        // Recent activities - clickable
         const activitiesQ = query(collection(db, 'attendance'), orderBy('createdAt', 'desc'), limit(10));
         const activitiesSnapshot = await getDocs(activitiesQ);
         const activitiesHtml = [];
@@ -534,18 +479,19 @@ async function loadDashboardData() {
             const data = doc.data();
             activitiesHtml.push(`
                 <div class="activity-item glass-card-hover" onclick="showAttendanceDetail('${doc.id}')" style="cursor: pointer;">
-                    <i class="fas fa-clock" style="color: #a8b5ff;"></i>
+                    <i class="fas fa-clock"></i>
                     <div class="flex-grow-1">
                         <strong>${data.employeeName || 'Employee'}</strong> - ${data.status || 'Checked in'}
                         <small class="d-block text-muted">${data.date} at ${data.checkIn?.toDate().toLocaleTimeString() || ''}</small>
                     </div>
-                    <i class="fas fa-chevron-right" style="color: #a8b5ff;"></i>
+                    <i class="fas fa-chevron-right"></i>
                 </div>
             `);
         });
         const recentActivitiesElem = document.getElementById('recentActivities');
         if (recentActivitiesElem) recentActivitiesElem.innerHTML = activitiesHtml.join('') || '<div class="text-center p-3 text-muted">No recent activities</div>';
         
+        // Upcoming appointments - clickable
         const upcomingQ = query(collection(db, 'appointments'), where('startTime', '>=', Timestamp.now()), orderBy('startTime'), limit(10));
         const upcomingSnapshot = await getDocs(upcomingQ);
         const upcomingHtml = [];
@@ -553,18 +499,19 @@ async function loadDashboardData() {
             const data = doc.data();
             upcomingHtml.push(`
                 <div class="schedule-item glass-card-hover" onclick="showAppointmentDetail('${doc.id}')" style="cursor: pointer;">
-                    <i class="fas fa-calendar-alt" style="color: #a8b5ff;"></i>
+                    <i class="fas fa-calendar-alt"></i>
                     <div class="flex-grow-1">
                         <strong>${data.title}</strong>
                         <small class="d-block text-muted">${data.startTime?.toDate().toLocaleString()} by ${data.organizerName || 'Organizer'}</small>
                     </div>
-                    <i class="fas fa-chevron-right" style="color: #a8b5ff;"></i>
+                    <i class="fas fa-chevron-right"></i>
                 </div>
             `);
         });
         const upcomingAppointmentsElem = document.getElementById('upcomingAppointments');
         if (upcomingAppointmentsElem) upcomingAppointmentsElem.innerHTML = upcomingHtml.join('') || '<div class="text-center p-3 text-muted">No upcoming appointments</div>';
         
+        // Recent Tasks - clickable cards
         const recentTasksQ = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'), limit(10));
         const recentTasksSnapshot = await getDocs(recentTasksQ);
         const tasksHtml = [];
@@ -573,17 +520,18 @@ async function loadDashboardData() {
             const priorityColor = data.priority === 'High' ? '#f44336' : data.priority === 'Medium' ? '#ff9800' : '#4caf50';
             tasksHtml.push(`
                 <div class="task-card-mini glass-card-hover" onclick="showTaskDetail('${doc.id}')" style="cursor: pointer; border-left: 3px solid ${priorityColor};">
-                    <i class="fas fa-tasks" style="color: #a8b5ff;"></i>
+                    <i class="fas fa-tasks"></i>
                     <div class="flex-grow-1">
                         <strong>${data.title}</strong>
                         <small class="d-block text-muted">Assigned to: ${data.assignedByName || 'Unassigned'} | Due: ${data.dueDate?.toDate().toLocaleDateString() || 'No date'}</small>
                     </div>
                     <span class="status-badge status-${data.status}">${data.status || 'pending'}</span>
-                    <i class="fas fa-chevron-right" style="color: #a8b5ff;"></i>
+                    <i class="fas fa-chevron-right"></i>
                 </div>
             `);
         });
         
+        // Recent Leave Requests - clickable cards
         const leaveQ = query(collection(db, 'leave_requests'), orderBy('createdAt', 'desc'), limit(10));
         const leaveSnapshot = await getDocs(leaveQ);
         const leaveHtml = [];
@@ -591,17 +539,18 @@ async function loadDashboardData() {
             const data = doc.data();
             leaveHtml.push(`
                 <div class="leave-card-mini glass-card-hover" onclick="showLeaveDetail('${doc.id}')" style="cursor: pointer;">
-                    <i class="fas fa-umbrella-beach" style="color: #a8b5ff;"></i>
+                    <i class="fas fa-umbrella-beach"></i>
                     <div class="flex-grow-1">
                         <strong>${data.employeeName}</strong> - ${data.type}
                         <small class="d-block text-muted">${data.startDate} to ${data.endDate} (${data.totalDays} days)</small>
                     </div>
                     <span class="status-badge status-${data.status}">${data.status || 'pending'}</span>
-                    <i class="fas fa-chevron-right" style="color: #a8b5ff;"></i>
+                    <i class="fas fa-chevron-right"></i>
                 </div>
             `);
         });
         
+        // Recent Expenses - clickable cards
         const expensesQ = query(collection(db, 'expenses'), orderBy('createdAt', 'desc'), limit(10));
         const expensesSnapshot = await getDocs(expensesQ);
         const expensesHtml = [];
@@ -609,17 +558,18 @@ async function loadDashboardData() {
             const data = doc.data();
             expensesHtml.push(`
                 <div class="expense-card-mini glass-card-hover" onclick="showExpenseDetail('${doc.id}')" style="cursor: pointer;">
-                    <i class="fas fa-receipt" style="color: #a8b5ff;"></i>
+                    <i class="fas fa-receipt"></i>
                     <div class="flex-grow-1">
                         <strong>${data.employeeName}</strong> - ${data.category}
                         <small class="d-block text-muted">$${data.amount} - ${data.date}</small>
                     </div>
                     <span class="status-badge status-${data.status}">${data.status || 'pending'}</span>
-                    <i class="fas fa-chevron-right" style="color: #a8b5ff;"></i>
+                    <i class="fas fa-chevron-right"></i>
                 </div>
             `);
         });
         
+        // Update the dashboard with new sections
         const dashboardSection = document.getElementById('dashboardSection');
         if (dashboardSection) {
             let additionalRow = dashboardSection.querySelector('.additional-dashboard-row');
@@ -656,7 +606,7 @@ async function loadDashboardData() {
     }
 }
 
-// ===== DETAIL VIEW FUNCTIONS (shortened for brevity - keep existing functions) =====
+// ===== DETAIL VIEW FUNCTIONS =====
 window.showTaskDetail = async function(taskId) {
     const taskDoc = await getDoc(doc(db, 'tasks', taskId));
     if (!taskDoc.exists()) return;
@@ -676,7 +626,7 @@ window.showTaskDetail = async function(taskId) {
             </div>
         `,
         icon: 'info',
-        confirmButtonColor: '#6c63ff',
+        confirmButtonColor: '#fff',
         background: '#000',
         backdrop: 'rgba(0,0,0,0.9)',
         showDenyButton: task.status !== 'completed',
@@ -708,7 +658,7 @@ window.showAppointmentDetail = async function(appointmentId) {
             </div>
         `,
         icon: 'info',
-        confirmButtonColor: '#6c63ff',
+        confirmButtonColor: '#fff',
         background: '#000',
         backdrop: 'rgba(0,0,0,0.9)'
     });
@@ -730,7 +680,7 @@ window.showAnnouncementDetail = async function(announcementId) {
             </div>
         `,
         icon: 'info',
-        confirmButtonColor: '#6c63ff',
+        confirmButtonColor: '#fff',
         background: '#000',
         backdrop: 'rgba(0,0,0,0.8)'
     });
@@ -761,7 +711,7 @@ window.showAttendanceDetail = async function(attendanceId) {
             </div>
         `,
         icon: 'info',
-        confirmButtonColor: '#6c63ff',
+        confirmButtonColor: '#fff',
         background: '#000',
         backdrop: 'rgba(0,0,0,0.8)'
     });
@@ -785,7 +735,7 @@ window.showLeaveDetail = async function(leaveId) {
             </div>
         `,
         icon: 'info',
-        confirmButtonColor: '#6c63ff',
+        confirmButtonColor: '#fff',
         background: '#000',
         backdrop: 'rgba(0,0,0,0.9)'
     });
@@ -805,17 +755,17 @@ window.showExpenseDetail = async function(expenseId) {
                 <p><strong>Date:</strong> ${expense.date}</p>
                 <p><strong>Description:</strong><br>${expense.description || 'No description'}</p>
                 <p><strong>Status:</strong> <span class="badge bg-${expense.status === 'approved' ? 'success' : expense.status === 'rejected' ? 'danger' : 'warning'}">${expense.status}</span></p>
-                ${expense.receiptUrl ? `<p><strong>Receipt:</strong> <a href="${expense.receiptUrl}" target="_blank" style="color: #6c63ff;">View Receipt</a></p>` : ''}
+                ${expense.receiptUrl ? `<p><strong>Receipt:</strong> <a href="${expense.receiptUrl}" target="_blank" style="color: #fff;">View Receipt</a></p>` : ''}
             </div>
         `,
         icon: 'info',
-        confirmButtonColor: '#6c63ff',
+        confirmButtonColor: '#fff',
         background: '#000',
         backdrop: 'rgba(0,0,0,0.9)'
     });
 };
 
-// ===== LOAD FUNCTIONS (shortened for brevity) =====
+// ===== LOAD FUNCTIONS =====
 async function loadAttendanceHistory() {
     try {
         const q = query(collection(db, 'attendance'), orderBy('date', 'desc'), limit(30));
@@ -1013,7 +963,7 @@ async function loadDocuments() {
                 <div class="col-md-4">
                     <div class="glass-card-inner p-3" onclick="window.open('${data.fileUrl}', '_blank')" style="cursor: pointer;">
                         <div class="d-flex align-items-center gap-3">
-                            <i class="fas fa-file-${fileExt === 'pdf' ? 'pdf' : 'image'} fa-2x text-${fileExt === 'pdf' ? 'danger' : 'primary'}"></i>
+                            <i class="fas fa-file-${fileExt === 'pdf' ? 'pdf' : 'image'} fa-2x"></i>
                             <div class="flex-grow-1">
                                 <h6>${data.title}</h6>
                                 <small class="text-muted">Uploaded by ${data.uploadedByName} (${data.uploadedByPosition})<br>${data.createdAt?.toDate().toLocaleDateString()}</small>
@@ -1141,7 +1091,7 @@ window.showAddTaskModal = async function() {
         confirmButtonText: 'Create Task',
         showCancelButton: true,
         background: '#000',
-        confirmButtonColor: '#6c63ff',
+        confirmButtonColor: '#fff',
         preConfirm: async () => {
             const title = Swal.getPopup().querySelector('#taskTitle').value;
             const description = Swal.getPopup().querySelector('#taskDescription').value;
@@ -1177,7 +1127,7 @@ window.showAddTaskModal = async function() {
     }).then(() => {
         loadTasks();
         loadDashboardData();
-        Swal.fire({ title: 'Success', text: 'Task created successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+        Swal.fire({ title: 'Success', text: 'Task created successfully', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
     });
 };
 
@@ -1196,7 +1146,7 @@ window.createAppointment = async function() {
     const location = document.getElementById('appointmentLocation').value;
     const description = document.getElementById('appointmentDescription').value;
     
-    if (!title || !dateTime) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: '#000', confirmButtonColor: '#6c63ff' }); return; }
+    if (!title || !dateTime) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: '#000', confirmButtonColor: '#fff' }); return; }
     
     await addDoc(collection(db, 'appointments'), {
         title: title,
@@ -1215,7 +1165,7 @@ window.createAppointment = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('appointmentModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Appointment scheduled successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+    Swal.fire({ title: 'Success', text: 'Appointment scheduled successfully', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
     await loadAppointments();
     await loadDashboardData();
 };
@@ -1235,7 +1185,7 @@ window.submitLeaveRequest = async function() {
     const endDate = document.getElementById('leaveEnd').value;
     const reason = document.getElementById('leaveReason').value;
     
-    if (!startDate || !endDate) { Swal.fire({ title: 'Error', text: 'Please select dates', icon: 'error', background: '#000', confirmButtonColor: '#6c63ff' }); return; }
+    if (!startDate || !endDate) { Swal.fire({ title: 'Error', text: 'Please select dates', icon: 'error', background: '#000', confirmButtonColor: '#fff' }); return; }
     
     const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
     
@@ -1253,7 +1203,7 @@ window.submitLeaveRequest = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('leaveModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Leave request submitted successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+    Swal.fire({ title: 'Success', text: 'Leave request submitted successfully', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
     await loadLeaveRequests();
 };
 
@@ -1271,7 +1221,7 @@ window.submitExpense = async function() {
     const description = document.getElementById('expenseDescription').value;
     const receiptFile = document.getElementById('receiptImage').files[0];
     
-    if (!category || !amount || !date) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: '#000', confirmButtonColor: '#6c63ff' }); return; }
+    if (!category || !amount || !date) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: '#000', confirmButtonColor: '#fff' }); return; }
     
     let receiptUrl = '';
     if (receiptFile) {
@@ -1294,13 +1244,13 @@ window.submitExpense = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Expense submitted successfully', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+    Swal.fire({ title: 'Success', text: 'Expense submitted successfully', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
     await loadExpenses();
 };
 
 window.updateTaskStatus = async function(taskId, status) {
     await updateDoc(doc(db, 'tasks', taskId), { status: status, completedAt: status === 'completed' ? Timestamp.now() : null });
-    Swal.fire({ title: 'Success', text: 'Task updated', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+    Swal.fire({ title: 'Success', text: 'Task updated', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
     await loadTasks();
     await loadDashboardData();
 };
@@ -1318,7 +1268,7 @@ window.showAddDocumentModal = function() {
         confirmButtonText: 'Upload',
         showCancelButton: true,
         background: '#000',
-        confirmButtonColor: '#6c63ff',
+        confirmButtonColor: '#fff',
         preConfirm: async () => {
             const title = Swal.getPopup().querySelector('#docTitle').value;
             const category = Swal.getPopup().querySelector('#docCategory').value;
@@ -1350,7 +1300,7 @@ window.showAddAnnouncementModal = function() {
         confirmButtonText: 'Post',
         showCancelButton: true,
         background: '#000',
-        confirmButtonColor: '#6c63ff',
+        confirmButtonColor: '#fff',
         preConfirm: async () => {
             const title = Swal.getPopup().querySelector('#announceTitle').value;
             const priority = Swal.getPopup().querySelector('#announcePriority').value;
@@ -1379,7 +1329,7 @@ window.showAddReviewModal = function() {
         },
         showCancelButton: true,
         background: '#000',
-        confirmButtonColor: '#6c63ff',
+        confirmButtonColor: '#fff',
         preConfirm: (employeeId) => {
             if (!employeeId) { Swal.showValidationMessage('Please select an employee'); return false; }
             return employeeId;
@@ -1400,7 +1350,7 @@ function showReviewForm(employeeId) {
         confirmButtonText: 'Submit Review',
         showCancelButton: true,
         background: '#000',
-        confirmButtonColor: '#6c63ff',
+        confirmButtonColor: '#fff',
         preConfirm: async () => {
             const rating = parseInt(Swal.getPopup().querySelector('#reviewRating').value);
             const feedback = Swal.getPopup().querySelector('#reviewFeedback').value;
@@ -1420,7 +1370,7 @@ function showReviewForm(employeeId) {
     }).then(() => { loadPerformanceReviews(); });
 };
 
-// ========== CHAT FUNCTIONS WITH FILE SUPPORT ==========
+// ========== CHAT FUNCTIONS ==========
 window.showGroupChat = function() {
     currentChatType = 'group';
     currentChatUserId = null;
@@ -1559,7 +1509,6 @@ async function displayMessages(messages) {
             </div>
         ` : '';
         
-        // Handle media messages
         let mediaHtml = '';
         if (msg.mediaType === 'image') {
             mediaHtml = `<div class="chat-media-container mt-2">
@@ -1567,13 +1516,9 @@ async function displayMessages(messages) {
             </div>`;
         } else if (msg.mediaType === 'file') {
             mediaHtml = `<div class="chat-media-container mt-2">
-                <a href="${msg.mediaUrl}" target="_blank" class="chat-file-link" style="color: #6c63ff; text-decoration: none;">
+                <a href="${msg.mediaUrl}" target="_blank" class="chat-file-link">
                     <i class="fas fa-file-download"></i> ${msg.fileName || 'Download File'} (${msg.fileSize ? (msg.fileSize / 1024).toFixed(1) + ' KB' : ''})
                 </a>
-            </div>`;
-        } else if (msg.mediaType === 'voice') {
-            mediaHtml = `<div class="chat-media-container mt-2">
-                <audio controls src="${msg.mediaUrl}" style="max-width: 200px; height: 36px;"></audio>
             </div>`;
         }
         
@@ -1656,7 +1601,7 @@ window.updateProfile = async function() {
     localStorage.setItem('currentUser', JSON.stringify(currentEmployee));
     
     bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Profile updated!', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+    Swal.fire({ title: 'Success', text: 'Profile updated!', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
     
     const displayName = currentEmployee.nickname || currentEmployee.fullName;
     document.getElementById('userRole').innerHTML = `<strong>${currentEmployee.position || 'Employee'}</strong><br><small>${displayName}</small>`;
@@ -1681,20 +1626,21 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// ===== ADMIN FUNCTIONS (shortened - keep existing) =====
+// ===== ADMIN FUNCTIONS =====
 window.showAdminEmployees = function() {
+    loadEmployeesTable();
     document.getElementById('adminContent').innerHTML = `
         <div class="glass-card-inner">
             <div class="card-header-glass">Employee Management</div>
             <div class="table-responsive">
-                <table class="glass-table" id="employeesTable">
+                <table class="glass-table">
                     <thead><tr><th>Name</th><th>DSSN</th><th>Department</th><th>Position</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody id="employeesTableBody"></tbody>
                 </table>
             </div>
+            <button class="btn-glass-primary m-3" onclick="showAddEmployeeModal()"><i class="fas fa-plus"></i> Add Employee</button>
         </div>
     `;
-    loadEmployeesTable();
 };
 
 window.showAdminReports = function() {
@@ -1759,7 +1705,7 @@ window.postAdminAnnouncement = async function() {
         createdAt: Timestamp.now()
     });
     
-    Swal.fire({ title: 'Success', text: 'Announcement posted', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
+    Swal.fire({ title: 'Success', text: 'Announcement posted', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
     document.getElementById('announceTitle').value = '';
     document.getElementById('announceMessage').value = '';
     loadAnnouncements();
@@ -1786,10 +1732,66 @@ async function loadEmployeesTable() {
     });
 }
 
+window.showAddEmployeeModal = function() {
+    document.getElementById('empName').value = '';
+    document.getElementById('empEmail').value = '';
+    document.getElementById('empDSSN').value = '';
+    document.getElementById('empDepartment').value = 'Engineering';
+    document.getElementById('empPosition').value = '';
+    document.getElementById('empPhone').value = '';
+    document.getElementById('empSalary').value = '';
+    document.getElementById('empRole').value = 'employee';
+    
+    const modal = new bootstrap.Modal(document.getElementById('employeeModal'));
+    modal.show();
+};
+
+window.addEmployee = async function() {
+    const fullName = document.getElementById('empName').value;
+    const email = document.getElementById('empEmail').value;
+    const dssn = document.getElementById('empDSSN').value.toUpperCase();
+    const department = document.getElementById('empDepartment').value;
+    const position = document.getElementById('empPosition').value;
+    const phone = document.getElementById('empPhone').value;
+    const salary = parseFloat(document.getElementById('empSalary').value);
+    const role = document.getElementById('empRole').value;
+    
+    if (!fullName || !email || !dssn) {
+        Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: '#000', confirmButtonColor: '#fff' });
+        return;
+    }
+    
+    const q = query(collection(db, 'employees'), where('dssn', '==', dssn));
+    const existing = await getDocs(q);
+    if (!existing.empty) {
+        Swal.fire({ title: 'Error', text: 'DSSN already exists!', icon: 'error', background: '#000', confirmButtonColor: '#fff' });
+        return;
+    }
+    
+    await addDoc(collection(db, 'employees'), {
+        fullName: fullName,
+        email: email,
+        dssn: dssn,
+        department: department,
+        position: position,
+        phone: phone,
+        salary: salary || 0,
+        role: role,
+        annualLeave: 20,
+        sickLeave: 10,
+        status: 'active',
+        createdAt: Timestamp.now()
+    });
+    
+    bootstrap.Modal.getInstance(document.getElementById('employeeModal')).hide();
+    Swal.fire({ title: 'Success', text: 'Employee added!', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
+    await loadEmployeesTable();
+};
+
 window.deleteEmployee = async function(employeeId) {
     const result = await Swal.fire({
         title: 'Confirm Delete',
-        text: 'Are you sure you want to delete this employee?',
+        text: 'Are you sure?',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
@@ -1800,8 +1802,8 @@ window.deleteEmployee = async function(employeeId) {
     
     if (result.isConfirmed) {
         await deleteDoc(doc(db, 'employees', employeeId));
-        Swal.fire({ title: 'Deleted', text: 'Employee deleted', icon: 'success', background: '#000', confirmButtonColor: '#6c63ff' });
-        loadEmployeesTable();
+        Swal.fire({ title: 'Deleted', text: 'Employee deleted', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
+        await loadEmployeesTable();
     }
 };
 
@@ -1842,10 +1844,7 @@ window.generateReport = async function() {
             <table class="glass-table">
                 <thead><tr><th>Employee</th><th>Days Present</th><th>Total Hours</th></tr></thead>
                 <tbody>
-                    ${Object.values(employeeSummary).map(emp => `<tr><td>${emp.name}</td><td>${emp.present}</td>
-
-
-<a href="${emp.hours.toFixed(1)} hrs</td>`).join('')}
+                    ${Object.values(employeeSummary).map(emp => `<tr><td>${emp.name}</td><td>${emp.present}</td><td>${emp.hours.toFixed(1)} hrs</td>`).join('')}
                 </tbody>
             </table>
         </div>
@@ -1893,7 +1892,7 @@ window.calculatePayroll = async function() {
             <table class="glass-table">
                 <thead><tr><th>Employee</th><th>Position</th><th>Hours Worked</th><th>Monthly Salary</th><th>Pro-rated Amount</th></tr></thead>
                 <tbody>
-                    ${payroll.map(p => `<tr><td>${p.name}</td><td>${p.position}</td><td>${p.hours}</td><td>$${p.salary}</td><td>$${p.amount}</td></tr>`).join('')}
+                    ${payroll.map(p => `<tr><td>${p.name}</td><td>${p.position}</td><td>${p.hours}</td><td>$${p.salary}</td><td>$${p.amount}</td>`).join('')}
                 </tbody>
             </table>
         </div>
