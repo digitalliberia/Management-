@@ -1,4 +1,9 @@
 import { db } from './firebase-config.js';
+import { 
+    collection, addDoc, getDocs, query, where, updateDoc, deleteDoc, 
+    doc, Timestamp, orderBy, limit, getDoc, onSnapshot, arrayUnion, arrayRemove
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 let currentUser = null;
 let currentEmployee = null;
@@ -35,9 +40,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         currentEmployee = { id: userDoc.id, ...userDoc.data() };
         
-        // FIX: Handle field name with space (role )
+        // Handle field name with space (role )
         const userRole = currentEmployee['role '] || currentEmployee.role || 'employee';
-        
         const isAdmin = userRole === 'admin' || userRole === 'super admin';
         
         console.log('Employee role:', userRole);
@@ -49,21 +53,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Show admin menu in sidebar
         const adminMenu = document.getElementById('adminMenu');
-        if (adminMenu) {
-            adminMenu.style.display = isAdmin ? 'block' : 'none';
-        }
+        if (adminMenu) adminMenu.style.display = isAdmin ? 'block' : 'none';
         
         // Show the admin button in navbar
         const adminNavBtn = document.getElementById('adminNavBtn');
-        if (adminNavBtn) {
-            adminNavBtn.style.display = isAdmin ? 'inline-block' : 'none';
-        }
+        if (adminNavBtn) adminNavBtn.style.display = isAdmin ? 'inline-block' : 'none';
         
         // Show edit profile button
         const editProfileBtn = document.getElementById('editProfileBtn');
-        if (editProfileBtn) {
-            editProfileBtn.style.display = 'inline-block';
-        }
+        if (editProfileBtn) editProfileBtn.style.display = 'inline-block';
         
         await loadDashboardData();
         await loadAttendanceHistory();
@@ -840,7 +838,7 @@ async function loadExpenses() {
         const snapshot = await getDocs(q);
         const container = document.getElementById('expensesList');
         if (!container) return;
-        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>';
+        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></td></thead><tbody></tbody><tr></div>';
         const tbody = container.querySelector('tbody');
         
         snapshot.forEach(doc => {
@@ -1290,7 +1288,7 @@ function showReviewForm(employeeId) {
     }).then(() => { loadPerformanceReviews(); });
 };
 
-// ========== CHAT FUNCTIONS ==========
+// ========== CHAT FUNCTIONS WITH READ RECEIPTS ==========
 window.showGroupChat = function() {
     currentChatType = 'group';
     currentChatUserId = null;
@@ -1348,6 +1346,19 @@ window.startDM = function(userId) {
     loadChatMessages('dm', userId);
 };
 
+// Mark message as read
+async function markMessageAsRead(messageId) {
+    if (!currentEmployee?.id) return;
+    try {
+        const messageRef = doc(db, 'chat_messages', messageId);
+        await updateDoc(messageRef, {
+            readBy: arrayUnion(currentEmployee.id)
+        });
+    } catch (error) {
+        console.error('Error marking message as read:', error);
+    }
+}
+
 async function loadChatMessages(type, userId) {
     if (chatUnsubscribe) chatUnsubscribe();
     
@@ -1363,19 +1374,27 @@ async function loadChatMessages(type, userId) {
     
     chatUnsubscribe = onSnapshot(q, async (snapshot) => {
         let messages = [];
-        for (const doc of snapshot.docs) {
-            const msg = doc.data();
+        for (const docSnapshot of snapshot.docs) {
+            const msg = docSnapshot.data();
             if (type === 'dm') {
                 if (msg.senderId === userId || msg.receiverId === userId || 
                     (msg.senderId === currentEmployee.id && msg.receiverId === userId) ||
                     (msg.senderId === userId && msg.receiverId === currentEmployee.id)) {
-                    messages.push({ id: doc.id, ...msg });
+                    messages.push({ id: docSnapshot.id, ...msg });
                 }
             } else {
-                messages.push({ id: doc.id, ...msg });
+                messages.push({ id: docSnapshot.id, ...msg });
             }
         }
         messages.sort((a, b) => (a.timestamp?.toDate() || 0) - (b.timestamp?.toDate() || 0));
+        
+        // Mark unread messages as read
+        for (const msg of messages) {
+            if (msg.senderId !== currentEmployee.id && (!msg.readBy || !msg.readBy.includes(currentEmployee.id))) {
+                await markMessageAsRead(msg.id);
+            }
+        }
+        
         await displayMessages(messages);
     });
 }
@@ -1388,9 +1407,29 @@ async function displayMessages(messages) {
     for (const msg of messages) {
         const senderDoc = await getDoc(doc(db, 'employees', msg.senderId));
         const sender = senderDoc.data();
+        // Use nickname if available, otherwise full name
         const displayName = sender?.nickname || sender?.fullName || 'Unknown';
         const initial = displayName.charAt(0).toUpperCase();
         const isOwn = msg.senderId === currentEmployee.id;
+        
+        // Get read receipts (who has seen this message)
+        const readBy = msg.readBy || [];
+        const readByNames = [];
+        for (const readerId of readBy) {
+            if (readerId !== msg.senderId) {
+                const readerDoc = await getDoc(doc(db, 'employees', readerId));
+                if (readerDoc.exists()) {
+                    const reader = readerDoc.data();
+                    readByNames.push(reader.nickname || reader.fullName);
+                }
+            }
+        }
+        
+        const readReceiptsHtml = readByNames.length > 0 ? `
+            <div class="chat-read-receipts">
+                <small class="text-muted">Seen by: ${readByNames.slice(0, 3).join(', ')}${readByNames.length > 3 ? ` +${readByNames.length - 3}` : ''}</small>
+            </div>
+        ` : '';
         
         const msgDiv = document.createElement('div');
         msgDiv.className = `chat-message ${isOwn ? 'own' : ''}`;
@@ -1402,9 +1441,10 @@ async function displayMessages(messages) {
                 }
             ` : ''}
             <div class="chat-message-bubble">
-                <div class="chat-message-name">${escapeHtml(displayName)} ${sender?.nickname ? `(${sender.fullName})` : ''}</div>
+                <div class="chat-message-name">${escapeHtml(displayName)}</div>
                 <div class="chat-message-text">${escapeHtml(msg.message)}</div>
                 <div class="chat-message-time">${msg.timestamp?.toDate().toLocaleTimeString()}</div>
+                ${readReceiptsHtml}
             </div>
         `;
         container.appendChild(msgDiv);
@@ -1422,7 +1462,8 @@ window.sendChatMessage = async function() {
         senderId: currentEmployee.id,
         senderName: currentEmployee.fullName,
         timestamp: Timestamp.now(),
-        type: currentChatType
+        type: currentChatType,
+        readBy: [currentEmployee.id] // Sender has read their own message
     };
     
     if (currentChatType === 'dm' && currentChatUserId) {
@@ -1496,7 +1537,6 @@ function escapeHtml(text) {
 
 // ===== ADMIN FUNCTIONS =====
 window.showAdminEmployees = function() {
-    loadEmployees();
     document.getElementById('adminContent').innerHTML = `
         <div class="glass-card-inner">
             <div class="card-header-glass">Employee Management</div>
