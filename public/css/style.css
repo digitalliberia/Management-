@@ -720,3 +720,25 @@ body {
     background: linear-gradient(135deg, #667eea, #764ba2);
     border-radius: 4px;
 }
+
+/* Chat Read Receipts */
+.chat-read-receipts {
+    margin-top: 4px;
+    font-size: 0.6rem;
+    text-align: right;
+    opacity: 0.6;
+}
+
+.chat-message-bubble {
+    position: relative;
+}
+
+/* Message seen indicator */
+.chat-message.own .chat-message-bubble::after {
+    content: '✓✓';
+    position: absolute;
+    bottom: 2px;
+    right: 8px;
+    font-size: 0.5rem;
+    opacity: 0.5;
+}
