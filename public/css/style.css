@@ -1330,3 +1330,220 @@ small, .small {
     color: #90caf9 !important;
     border: 1px solid rgba(33, 150, 243, 0.5) !important;
 }
+
+/* ============================================ */
+/* CRITICAL MOBILE SCROLLING FIXES */
+/* ============================================ */
+
+/* Force proper scrolling on all devices */
+html, body {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* Main container must allow scrolling */
+.container-fluid {
+    height: auto !important;
+    min-height: 100vh;
+    overflow-y: visible !important;
+}
+
+/* Main content area - ensure it can expand */
+.main-glass {
+    overflow-y: visible !important;
+    height: auto !important;
+    min-height: calc(100vh - 70px);
+    padding-bottom: 100px !important;
+}
+
+/* All section containers must be scrollable */
+#dashboardSection,
+#attendanceSection,
+#appointmentsSection,
+#tasksSection,
+#leaveSection,
+#expensesSection,
+#documentsSection,
+#performanceSection,
+#announcementsSection,
+#chatSection,
+#adminSection {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 300px;
+}
+
+/* Make all list containers scrollable */
+.activity-list,
+.schedule-list,
+#tasksList,
+#leaveRequestsList,
+#expensesList,
+#performanceReviews,
+#announcementsList,
+.documents-grid,
+.reviewsList {
+    max-height: 500px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 5px;
+}
+
+/* Chat specific scrolling */
+.chat-sidebar {
+    max-height: 300px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.chat-messages {
+    max-height: 400px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Attendance history table */
+#attendanceHistoryTable {
+    display: block;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Ensure cards don't restrict height */
+.glass-card,
+.glass-card-inner {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+}
+
+/* Remove any fixed height constraints */
+[style*="height: 100vh"] {
+    height: auto !important;
+    min-height: 100vh;
+}
+
+/* Ensure the row doesn't restrict scrolling */
+.row {
+    height: auto !important;
+    min-height: auto !important;
+}
+
+/* Column spacing */
+.col-md-10, .col-md-2 {
+    height: auto !important;
+}
+
+/* Mobile specific overrides */
+@media (max-width: 768px) {
+    /* Reduce max-heights on mobile for better performance */
+    .activity-list,
+    .schedule-list {
+        max-height: 300px;
+    }
+    
+    #tasksList,
+    #leaveRequestsList,
+    #expensesList,
+    #performanceReviews,
+    #announcementsList {
+        max-height: 400px;
+    }
+    
+    .chat-messages {
+        max-height: 350px;
+    }
+    
+    .chat-sidebar {
+        max-height: 200px;
+    }
+    
+    /* Extra bottom padding for last element */
+    .main-glass {
+        padding-bottom: 120px !important;
+    }
+    
+    /* Ensure the last card has margin */
+    .glass-card:last-child {
+        margin-bottom: 40px;
+    }
+}
+
+/* For very small screens */
+@media (max-width: 480px) {
+    .activity-list,
+    .schedule-list {
+        max-height: 250px;
+    }
+    
+    #tasksList,
+    #leaveRequestsList,
+    #expensesList,
+    #performanceReviews,
+    #announcementsList {
+        max-height: 350px;
+    }
+    
+    .chat-messages {
+        max-height: 300px;
+    }
+    
+    .chat-sidebar {
+        max-height: 180px;
+    }
+    
+    .main-glass {
+        padding-bottom: 100px !important;
+    }
+}
+
+/* iOS Safari specific smooth scrolling */
+@supports (-webkit-touch-callout: none) {
+    .activity-list,
+    .schedule-list,
+    #tasksList,
+    #leaveRequestsList,
+    #expensesList,
+    #performanceReviews,
+    #announcementsList,
+    .chat-messages,
+    .chat-sidebar {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Custom scrollbar styling for lists */
+.activity-list::-webkit-scrollbar,
+.schedule-list::-webkit-scrollbar,
+#tasksList::-webkit-scrollbar,
+.chat-messages::-webkit-scrollbar,
+.chat-sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.activity-list::-webkit-scrollbar-track,
+.schedule-list::-webkit-scrollbar-track,
+#tasksList::-webkit-scrollbar-track,
+.chat-messages::-webkit-scrollbar-track,
+.chat-sidebar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.activity-list::-webkit-scrollbar-thumb,
+.schedule-list::-webkit-scrollbar-thumb,
+#tasksList::-webkit-scrollbar-thumb,
+.chat-messages::-webkit-scrollbar-thumb,
+.chat-sidebar::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, var(--liberia-blue), var(--liberia-light-blue));
+    border-radius: 10px;
+}
+
+/* Ensure content doesn't get cut off at the bottom */
+body {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+}
