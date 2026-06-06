@@ -45,17 +45,6 @@ body::before {
     z-index: 0;
 }
 
-/* Liberia flag accent overlay */
-.flag-accent {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--liberia-blue) 0%, var(--liberia-red) 25%, var(--liberia-white) 50%, var(--liberia-blue) 75%, var(--liberia-red) 100%);
-    z-index: 2000;
-}
-
 /* Glass Navigation */
 .glass-nav {
     background: rgba(5, 10, 20, 0.95) !important;
@@ -110,7 +99,7 @@ body::before {
     gap: 8px;
 }
 
-/* Sidebar icons - unique blue glass */
+/* Sidebar icons */
 .glass-nav-item {
     display: flex;
     align-items: center;
@@ -210,7 +199,7 @@ body::before {
     letter-spacing: 0.3px;
 }
 
-/* STAT CARDS - Unique icon backgrounds */
+/* STAT CARDS - Transparent white icons with black text */
 .glass-stat-card {
     background: rgba(5, 10, 20, 0.7);
     backdrop-filter: blur(10px);
@@ -225,44 +214,22 @@ body::before {
     overflow: hidden;
 }
 
-/* Today's Hours Icon - Blue gradient */
-.glass-stat-card:nth-child(1) .stat-icon i {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.4), rgba(0, 60, 150, 0.4));
-    padding: 12px;
+.stat-icon i {
+    font-size: 1.8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.15);
     border-radius: 50%;
-    box-shadow: 0 0 15px rgba(0, 40, 104, 0.3);
-    transition: all 0.3s ease;
-}
-
-/* Pending Tasks Icon - Red accent gradient */
-.glass-stat-card:nth-child(2) .stat-icon i {
-    background: linear-gradient(135deg, rgba(191, 10, 48, 0.3), rgba(150, 8, 38, 0.3));
-    padding: 12px;
-    border-radius: 50%;
-    box-shadow: 0 0 15px rgba(191, 10, 48, 0.2);
-    transition: all 0.3s ease;
-}
-
-/* Today's Appointments Icon - White glass */
-.glass-stat-card:nth-child(3) .stat-icon i {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 12px;
-    border-radius: 50%;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
-}
-
-/* Announcements Icon - Blue/Red gradient */
-.glass-stat-card:nth-child(4) .stat-icon i {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.4), rgba(191, 10, 48, 0.2));
-    padding: 12px;
-    border-radius: 50%;
-    box-shadow: 0 0 15px rgba(0, 40, 104, 0.3);
+    color: #ffffff;
     transition: all 0.3s ease;
 }
 
 .glass-stat-card:hover .stat-icon i {
     transform: scale(1.15);
+    background: rgba(255, 255, 255, 0.25);
     box-shadow: var(--blue-glow);
 }
 
@@ -273,23 +240,11 @@ body::before {
     box-shadow: var(--blue-glow);
 }
 
-.stat-icon i {
-    font-size: 1.8rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 50px;
-    height: 50px;
-}
-
 .stat-info h3 {
     font-size: 2rem;
     font-weight: 700;
     margin: 0;
-    background: linear-gradient(135deg, var(--liberia-white), var(--liberia-blue));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--liberia-white);
 }
 
 .stat-info p {
@@ -299,7 +254,7 @@ body::before {
     color: var(--liberia-white);
 }
 
-/* ACTIVITY ITEMS - Unique backgrounds */
+/* ACTIVITY ITEMS */
 .activity-item {
     display: flex;
     align-items: center;
@@ -321,24 +276,8 @@ body::before {
     border-radius: 50%;
     font-size: 1rem;
     transition: all 0.3s ease;
-}
-
-/* Clock icon in recent activities */
-.activity-item:first-child i {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.5), rgba(0, 60, 150, 0.3));
-    color: #4c9aff;
-}
-
-/* User icon */
-.activity-item:nth-child(2) i {
-    background: linear-gradient(135deg, rgba(191, 10, 48, 0.4), rgba(150, 8, 38, 0.3));
-    color: #ff6b6b;
-}
-
-/* Check icon */
-.activity-item:nth-child(3) i {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.4), rgba(255, 255, 255, 0.1));
-    color: #88ff88;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
 }
 
 .activity-item:hover {
@@ -348,6 +287,7 @@ body::before {
 
 .activity-item:hover i {
     transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.25);
 }
 
 /* SCHEDULE ITEMS */
@@ -370,14 +310,18 @@ body::before {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: rgba(0, 40, 104, 0.3);
-    color: #4c9aff;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
     transition: all 0.3s ease;
 }
 
 .schedule-item:hover {
     background: rgba(0, 40, 104, 0.2);
     transform: translateX(5px);
+}
+
+.schedule-item:hover i {
+    background: rgba(255, 255, 255, 0.25);
 }
 
 /* TASK CARDS */
@@ -400,10 +344,11 @@ body::before {
 }
 
 .task-card i.fa-tasks {
-    background: rgba(0, 40, 104, 0.3);
+    background: rgba(255, 255, 255, 0.15);
     padding: 8px;
     border-radius: 50%;
     margin-right: 8px;
+    color: #ffffff;
 }
 
 /* LEAVE CARDS */
@@ -412,16 +357,245 @@ body::before {
 }
 
 .leave-card-mini i {
-    background: rgba(191, 10, 48, 0.2);
+    background: rgba(255, 255, 255, 0.15);
     padding: 8px;
     border-radius: 50%;
+    color: #ffffff;
 }
 
 /* EXPENSE CARDS */
 .expense-card-mini i {
-    background: rgba(0, 40, 104, 0.3);
+    background: rgba(255, 255, 255, 0.15);
     padding: 8px;
     border-radius: 50%;
+    color: #ffffff;
+}
+
+/* CHAT STYLES - White bubble with black text */
+.chat-sidebar {
+    border-right: 1px solid var(--liberia-blue);
+    padding: 15px;
+    height: 500px;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .chat-sidebar {
+        height: auto;
+        max-height: 250px;
+        border-right: none;
+        border-bottom: 1px solid var(--liberia-blue);
+    }
+}
+
+.chat-users-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chat-user-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(5, 10, 20, 0.5);
+}
+
+.chat-user-item:hover {
+    background: rgba(0, 40, 104, 0.2);
+    transform: translateX(5px);
+}
+
+.chat-user-item.active {
+    background: linear-gradient(135deg, rgba(0, 40, 104, 0.3), rgba(191, 10, 48, 0.1));
+    border-left: 2px solid var(--liberia-blue);
+}
+
+.chat-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: linear-gradient(135deg, var(--liberia-blue), var(--liberia-light-blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: var(--liberia-white);
+}
+
+.chat-user-info {
+    flex-grow: 1;
+}
+
+.chat-user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--liberia-white);
+}
+
+.chat-user-status {
+    font-size: 0.7rem;
+    opacity: 0.6;
+    color: rgba(255,255,255,0.6);
+}
+
+.chat-messages {
+    height: 400px;
+    overflow-y: auto;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    max-width: 80%;
+}
+
+@media (max-width: 768px) {
+    .chat-message {
+        max-width: 95%;
+    }
+}
+
+.chat-message.own {
+    flex-direction: row-reverse;
+    align-self: flex-end;
+}
+
+.chat-message-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: linear-gradient(135deg, var(--liberia-blue), var(--liberia-light-blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.8rem;
+    color: var(--liberia-white);
+    flex-shrink: 0;
+}
+
+/* WHITE BUBBLE WITH BLACK TEXT */
+.chat-message-bubble {
+    background: #ffffff;
+    padding: 10px 15px;
+    border-radius: 18px;
+    max-width: 100%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.chat-message.own .chat-message-bubble {
+    background: var(--liberia-blue);
+}
+
+.chat-message-name {
+    font-size: 0.7rem;
+    opacity: 0.7;
+    margin-bottom: 3px;
+    color: #666666;
+}
+
+.chat-message.own .chat-message-name {
+    color: rgba(255,255,255,0.7);
+}
+
+.chat-message-text {
+    font-size: 0.9rem;
+    word-wrap: break-word;
+    color: #000000;
+}
+
+.chat-message.own .chat-message-text {
+    color: #ffffff;
+}
+
+.chat-message-time {
+    font-size: 0.6rem;
+    opacity: 0.5;
+    margin-top: 3px;
+    text-align: right;
+    color: #999999;
+}
+
+.chat-message.own .chat-message-time {
+    color: rgba(255,255,255,0.5);
+}
+
+.chat-input-container {
+    padding: 10px;
+    border-top: 1px solid var(--liberia-blue);
+}
+
+.chat-divider {
+    margin: 10px 0;
+    text-align: center;
+    position: relative;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.7rem;
+}
+
+.chat-divider hr {
+    margin: 10px 0;
+    border-color: var(--liberia-blue);
+}
+
+/* Chat Media Styles */
+.chat-media-container {
+    margin-top: 8px;
+}
+
+.chat-image {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.chat-image:hover {
+    transform: scale(1.02);
+}
+
+.chat-file-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(0, 40, 104, 0.15);
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 0.8rem;
+    color: var(--liberia-white);
+}
+
+.chat-file-link:hover {
+    background: rgba(0, 40, 104, 0.3);
+    text-decoration: underline;
+    color: var(--liberia-white);
+}
+
+/* Chat Read Receipts */
+.chat-read-receipts {
+    margin-top: 4px;
+    font-size: 0.6rem;
+    text-align: right;
+    opacity: 0.6;
+    color: #666666;
+}
+
+.chat-message.own .chat-read-receipts {
+    color: rgba(255,255,255,0.6);
 }
 
 /* Buttons */
@@ -664,22 +838,6 @@ body::before {
         font-size: 1.2rem;
     }
     
-    .chat-sidebar {
-        width: 100%;
-        height: auto;
-        max-height: 300px;
-        border-right: none;
-        border-bottom: 1px solid var(--liberia-blue);
-    }
-    
-    .chat-main {
-        width: 100%;
-    }
-    
-    .chat-message {
-        max-width: 90%;
-    }
-    
     .table-responsive {
         overflow-x: auto;
     }
@@ -763,206 +921,6 @@ body::before {
     box-shadow: var(--blue-glow) !important;
 }
 
-/* Chat Styles */
-.chat-sidebar {
-    border-right: 1px solid var(--liberia-blue);
-    padding: 15px;
-    height: 500px;
-    overflow-y: auto;
-}
-
-@media (max-width: 768px) {
-    .chat-sidebar {
-        height: auto;
-        max-height: 250px;
-        border-right: none;
-        border-bottom: 1px solid var(--liberia-blue);
-    }
-}
-
-.chat-users-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.chat-user-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background: rgba(5, 10, 20, 0.5);
-}
-
-.chat-user-item:hover {
-    background: rgba(0, 40, 104, 0.2);
-    transform: translateX(5px);
-}
-
-.chat-user-item.active {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.3), rgba(191, 10, 48, 0.1));
-    border-left: 2px solid var(--liberia-blue);
-}
-
-.chat-user-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    background: linear-gradient(135deg, var(--liberia-blue), var(--liberia-light-blue));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: var(--liberia-white);
-}
-
-.chat-user-info {
-    flex-grow: 1;
-}
-
-.chat-user-name {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--liberia-white);
-}
-
-.chat-user-status {
-    font-size: 0.7rem;
-    opacity: 0.6;
-    color: rgba(255,255,255,0.6);
-}
-
-.chat-messages {
-    height: 400px;
-    overflow-y: auto;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.chat-message {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    max-width: 80%;
-}
-
-@media (max-width: 768px) {
-    .chat-message {
-        max-width: 95%;
-    }
-}
-
-.chat-message.own {
-    flex-direction: row-reverse;
-    align-self: flex-end;
-}
-
-.chat-message-avatar {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    object-fit: cover;
-    background: linear-gradient(135deg, var(--liberia-blue), var(--liberia-light-blue));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 0.8rem;
-    color: var(--liberia-white);
-    flex-shrink: 0;
-}
-
-.chat-message-bubble {
-    background: rgba(255, 255, 255, 0.06);
-    padding: 10px 15px;
-    border-radius: 18px;
-    max-width: 100%;
-}
-
-.chat-message.own .chat-message-bubble {
-    background: linear-gradient(135deg, rgba(0, 40, 104, 0.2), rgba(191, 10, 48, 0.08));
-}
-
-.chat-message-name {
-    font-size: 0.7rem;
-    opacity: 0.7;
-    margin-bottom: 3px;
-    color: rgba(255,255,255,0.7);
-}
-
-.chat-message-text {
-    font-size: 0.9rem;
-    word-wrap: break-word;
-    color: var(--liberia-white);
-}
-
-.chat-message-time {
-    font-size: 0.6rem;
-    opacity: 0.5;
-    margin-top: 3px;
-    text-align: right;
-    color: rgba(255,255,255,0.5);
-}
-
-.chat-input-container {
-    padding: 10px;
-    border-top: 1px solid var(--liberia-blue);
-}
-
-.chat-divider {
-    margin: 10px 0;
-    text-align: center;
-    position: relative;
-    color: rgba(255,255,255,0.4);
-    font-size: 0.7rem;
-}
-
-.chat-divider hr {
-    margin: 10px 0;
-    border-color: var(--liberia-blue);
-}
-
-/* Chat Media Styles */
-.chat-media-container {
-    margin-top: 8px;
-}
-
-.chat-image {
-    max-width: 200px;
-    max-height: 150px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: transform 0.2s;
-}
-
-.chat-image:hover {
-    transform: scale(1.02);
-}
-
-.chat-file-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
-    background: rgba(0, 40, 104, 0.15);
-    border-radius: 20px;
-    text-decoration: none;
-    font-size: 0.8rem;
-    color: var(--liberia-white);
-}
-
-.chat-file-link:hover {
-    background: rgba(0, 40, 104, 0.3);
-    text-decoration: underline;
-    color: var(--liberia-white);
-}
-
 /* Profile Picture Preview */
 .profile-picture-preview {
     width: 100px;
@@ -1008,10 +966,11 @@ body::before {
 
 .glass-info-card i {
     font-size: 2rem;
-    background: rgba(0, 40, 104, 0.3);
+    background: rgba(255, 255, 255, 0.15);
     padding: 12px;
     border-radius: 50%;
     margin-bottom: 10px;
+    color: #ffffff;
 }
 
 .glass-info-card h4 {
@@ -1041,10 +1000,11 @@ body::before {
 .glass-admin-card i {
     font-size: 2.5rem;
     margin-bottom: 10px;
-    background: rgba(0, 40, 104, 0.3);
+    background: rgba(255, 255, 255, 0.15);
     padding: 15px;
     border-radius: 50%;
     transition: all 0.3s ease;
+    color: #ffffff;
 }
 
 .glass-admin-card:hover {
@@ -1055,7 +1015,7 @@ body::before {
 }
 
 .glass-admin-card:hover i {
-    background: var(--liberia-blue);
+    background: rgba(255, 255, 255, 0.25);
     transform: scale(1.1);
     box-shadow: var(--blue-glow);
 }
@@ -1186,13 +1146,3 @@ body::after {
 .text-warning {
     color: #ff9800 !important;
 }
-
-/* Unique icon backgrounds summary:
- * - Dashboard stats: Each stat card has different icon background (blue, red, white, mixed)
- * - Sidebar icons: Blue glass circular backgrounds on hover
- * - Activity icons: Different colors based on action type
- * - Task icons: Blue tint backgrounds
- * - Leave icons: Red tint backgrounds
- * - Admin cards: Blue glass backgrounds on hover
- * - Info cards: Blue glass circular backgrounds
- */
