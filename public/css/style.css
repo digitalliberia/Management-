@@ -1,10 +1,14 @@
 :root {
-    --glass-bg: rgba(0, 0, 0, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --liberia-red: #BF0A30;
+    --liberia-white: #FFFFFF;
+    --liberia-blue: #002868;
+    --liberia-dark-blue: #001a4d;
+    --glass-bg: rgba(0, 0, 0, 0.75);
+    --glass-border: rgba(191, 10, 48, 0.2);
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-    --primary-white: #ffffff;
-    --primary-black: #000000;
-    --text-glow: 0 0 10px rgba(255, 255, 255, 0.3);
+    --red-glow: 0 0 15px rgba(191, 10, 48, 0.5);
+    --blue-glow: 0 0 15px rgba(0, 40, 104, 0.5);
+    --white-glow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
 * {
@@ -13,38 +17,67 @@
     box-sizing: border-box;
 }
 
-/* Grok-inspired black & white theme */
+/* Liberia-inspired dark theme */
 body {
-    background: #000000;
-    background: radial-gradient(circle at 20% 30%, #0a0a0a, #000000);
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 50%, #0a0a1a 100%);
     font-family: 'Inter', 'Poppins', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
     min-height: 100vh;
-    color: #ffffff;
+    color: var(--liberia-white);
+    position: relative;
 }
 
-/* Glass Navigation - White border with black glass */
+/* Liberia flag accent overlay */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--liberia-red) 0%, var(--liberia-white) 33%, var(--liberia-blue) 66%, var(--liberia-red) 100%);
+    z-index: 2000;
+}
+
+/* Glass Navigation - Liberia colors */
 .glass-nav {
-    background: rgba(0, 0, 0, 0.85) !important;
+    background: rgba(0, 0, 0, 0.9) !important;
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    border-bottom: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
+}
+
+.glass-nav::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--liberia-red), var(--liberia-white), var(--liberia-blue));
 }
 
 .brand-text {
     font-size: 1.5rem;
     font-weight: 700;
-    background: linear-gradient(135deg, #ffffff, #aaaaaa);
+    background: linear-gradient(135deg, var(--liberia-red), var(--liberia-white), var(--liberia-blue));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: var(--text-glow);
+    text-shadow: var(--white-glow);
+    animation: gradientShift 3s ease infinite;
+    background-size: 200% auto;
 }
 
-/* Glass Sidebar - Black transparent with white border */
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* Glass Sidebar */
 .sidebar-glass {
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(10px);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid var(--glass-border);
     min-height: calc(100vh - 70px);
     padding: 20px 0;
 }
@@ -65,24 +98,32 @@ body {
     color: rgba(255, 255, 255, 0.8);
     text-decoration: none;
     transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
 .glass-nav-item i {
     width: 24px;
     font-size: 1.2rem;
+    transition: all 0.3s ease;
 }
 
 .glass-nav-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(191, 10, 48, 0.2);
     transform: translateX(5px);
-    color: #ffffff;
+    color: var(--liberia-white);
+}
+
+.glass-nav-item:hover i {
+    color: var(--liberia-red);
+    transform: scale(1.1);
 }
 
 .glass-nav-item.active {
-    background: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-    color: #ffffff;
-    border-left: 2px solid #ffffff;
+    background: linear-gradient(135deg, rgba(191, 10, 48, 0.3), rgba(0, 40, 104, 0.3));
+    border-left: 3px solid var(--liberia-red);
+    color: var(--liberia-white);
+    box-shadow: 0 0 20px rgba(191, 10, 48, 0.2);
 }
 
 /* Main Content */
@@ -90,128 +131,169 @@ body {
     padding: 20px;
 }
 
-/* Glass Cards - Black glass with white border */
+/* Glass Cards with Liberia colors */
 .glass-card {
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(10px);
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(191, 10, 48, 0.2);
     padding: 20px;
     margin-bottom: 20px;
     animation: fadeInUp 0.5s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+.glass-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--liberia-red), var(--liberia-white), var(--liberia-blue));
+    opacity: 0.6;
 }
 
 .glass-card-inner {
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(8px);
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(191, 10, 48, 0.15);
     overflow: hidden;
     margin-bottom: 20px;
 }
 
 .card-header-glass {
     padding: 15px 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(191, 10, 48, 0.15), rgba(0, 40, 104, 0.15));
+    border-bottom: 1px solid rgba(191, 10, 48, 0.2);
     font-weight: 600;
     font-size: 1rem;
-    color: #ffffff;
+    color: var(--liberia-white);
     letter-spacing: 0.3px;
 }
 
-/* Stat Cards - Glass with white tint */
+/* Stat Cards - Liberia flag inspired */
 .glass-stat-card {
-    background: rgba(0, 0, 0, 0.6);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(191, 10, 48, 0.1));
     backdrop-filter: blur(10px);
     border-radius: 16px;
     padding: 20px;
     display: flex;
     align-items: center;
     gap: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(191, 10, 48, 0.2);
     transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.glass-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(191, 10, 48, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.glass-stat-card:hover::before {
+    left: 100%;
 }
 
 .glass-stat-card:hover {
     transform: translateY(-5px);
-    background: rgba(0, 0, 0, 0.8);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: var(--glass-shadow);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(191, 10, 48, 0.2));
+    border-color: var(--liberia-red);
+    box-shadow: var(--red-glow);
 }
 
 .stat-icon i {
     font-size: 2.5rem;
-    color: #ffffff;
-    opacity: 0.8;
+    color: var(--liberia-red);
+    opacity: 0.9;
+    transition: all 0.3s ease;
+}
+
+.glass-stat-card:hover .stat-icon i {
+    color: var(--liberia-white);
+    transform: scale(1.1);
 }
 
 .stat-info h3 {
     font-size: 2rem;
     font-weight: 700;
     margin: 0;
-    color: #ffffff;
-    text-shadow: var(--text-glow);
+    background: linear-gradient(135deg, var(--liberia-white), var(--liberia-red));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 .stat-info p {
     margin: 0;
     font-size: 0.85rem;
-    opacity: 0.7;
-    color: #ffffff;
+    opacity: 0.8;
+    color: var(--liberia-white);
 }
 
-/* Buttons - Clean white/black */
+/* Buttons with Liberia colors */
 .btn-glass-primary {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, rgba(191, 10, 48, 0.2), rgba(0, 40, 104, 0.2));
+    border: 1px solid rgba(191, 10, 48, 0.3);
     padding: 8px 20px;
     border-radius: 25px;
-    color: white;
+    color: var(--liberia-white);
     font-weight: 500;
     transition: all 0.3s ease;
 }
 
 .btn-glass-primary:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, rgba(191, 10, 48, 0.4), rgba(0, 40, 104, 0.4));
     transform: translateY(-2px);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-    color: white;
+    box-shadow: var(--red-glow);
+    color: var(--liberia-white);
+    border-color: var(--liberia-red);
 }
 
 .btn-glass-success {
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, rgba(191, 10, 48, 0.2), rgba(0, 40, 104, 0.2));
+    border: 1px solid rgba(191, 10, 48, 0.3);
     padding: 12px 30px;
     border-radius: 25px;
-    color: white;
+    color: var(--liberia-white);
     font-weight: 600;
     transition: all 0.3s ease;
 }
 
 .btn-glass-success:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: linear-gradient(135deg, rgba(191, 10, 48, 0.4), rgba(0, 40, 104, 0.4));
     transform: translateY(-2px);
+    box-shadow: var(--red-glow);
 }
 
 .btn-glass-danger {
-    background: rgba(220, 38, 38, 0.2);
-    border: 1px solid rgba(220, 38, 38, 0.4);
+    background: rgba(191, 10, 48, 0.15);
+    border: 1px solid rgba(191, 10, 48, 0.3);
     padding: 12px 30px;
     border-radius: 25px;
-    color: #ff8a8a;
+    color: #ff6b6b;
     font-weight: 600;
     transition: all 0.3s ease;
 }
 
 .btn-glass-danger:hover {
-    background: rgba(220, 38, 38, 0.3);
-    color: white;
+    background: rgba(191, 10, 48, 0.3);
+    color: var(--liberia-white);
+    box-shadow: var(--red-glow);
 }
 
 .btn-glass-logout {
-    background: rgba(220, 38, 38, 0.15);
-    border: 1px solid rgba(220, 38, 38, 0.3);
+    background: rgba(191, 10, 48, 0.15);
+    border: 1px solid rgba(191, 10, 48, 0.3);
     padding: 6px 15px;
     border-radius: 20px;
     color: #ff8a8a;
@@ -219,40 +301,42 @@ body {
 }
 
 .btn-glass-logout:hover {
-    background: rgba(220, 38, 38, 0.3);
-    color: white;
+    background: rgba(191, 10, 48, 0.3);
+    color: var(--liberia-white);
 }
 
 .btn-glass-sm {
     background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(191, 10, 48, 0.2);
     padding: 5px 15px;
     border-radius: 20px;
-    color: white;
+    color: var(--liberia-white);
     font-size: 0.85rem;
     transition: all 0.3s ease;
 }
 
 .btn-glass-sm:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(191, 10, 48, 0.2);
+    border-color: var(--liberia-red);
 }
 
-/* Inputs - Dark glass with white text */
+/* Inputs */
 .glass-input {
     background: rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(191, 10, 48, 0.2);
     border-radius: 10px;
     padding: 10px 15px;
-    color: white;
+    color: var(--liberia-white);
     width: 100%;
+    transition: all 0.3s ease;
 }
 
 .glass-input:focus {
     background: rgba(0, 0, 0, 0.8);
-    border-color: rgba(255, 255, 255, 0.4);
+    border-color: var(--liberia-red);
     outline: none;
-    color: white;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+    color: var(--liberia-white);
+    box-shadow: var(--red-glow);
 }
 
 .glass-input::placeholder {
@@ -266,25 +350,25 @@ body {
 }
 
 .glass-table th {
-    background: rgba(255, 255, 255, 0.05);
+    background: linear-gradient(135deg, rgba(191, 10, 48, 0.2), rgba(0, 40, 104, 0.2));
     padding: 12px;
     text-align: left;
     font-weight: 600;
-    color: #ffffff;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--liberia-white);
+    border-bottom: 1px solid var(--liberia-red);
 }
 
 .glass-table td {
     padding: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(191, 10, 48, 0.1);
     color: rgba(255, 255, 255, 0.9);
 }
 
 .glass-table tr:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(191, 10, 48, 0.1);
 }
 
-/* Badges - White/black contrast */
+/* Badges with Liberia colors */
 .status-badge {
     display: inline-block;
     padding: 4px 12px;
@@ -293,24 +377,24 @@ body {
     font-weight: 600;
 }
 
-.status-present { background: rgba(76, 175, 80, 0.3); color: #a5d6a7; border: 1px solid rgba(76, 175, 80, 0.5); }
-.status-late { background: rgba(255, 152, 0, 0.3); color: #ffcc80; border: 1px solid rgba(255, 152, 0, 0.5); }
-.status-absent { background: rgba(244, 67, 54, 0.3); color: #ef9a9a; border: 1px solid rgba(244, 67, 54, 0.5); }
-.status-pending { background: rgba(255, 152, 0, 0.3); color: #ffcc80; border: 1px solid rgba(255, 152, 0, 0.5); }
-.status-approved { background: rgba(76, 175, 80, 0.3); color: #a5d6a7; border: 1px solid rgba(76, 175, 80, 0.5); }
-.status-rejected { background: rgba(244, 67, 54, 0.3); color: #ef9a9a; border: 1px solid rgba(244, 67, 54, 0.5); }
+.status-present { background: rgba(0, 40, 104, 0.3); color: #66b0ff; border: 1px solid var(--liberia-blue); }
+.status-late { background: rgba(191, 10, 48, 0.3); color: #ff8a8a; border: 1px solid var(--liberia-red); }
+.status-absent { background: rgba(191, 10, 48, 0.2); color: #ff6b6b; border: 1px solid rgba(191, 10, 48, 0.5); }
+.status-pending { background: rgba(255, 255, 255, 0.1); color: #ffcc80; border: 1px solid rgba(255, 255, 255, 0.3); }
+.status-approved { background: rgba(0, 40, 104, 0.3); color: #66b0ff; border: 1px solid var(--liberia-blue); }
+.status-rejected { background: rgba(191, 10, 48, 0.3); color: #ff8a8a; border: 1px solid var(--liberia-red); }
 
 /* Modal Glass */
 .glass-modal {
     background: rgba(0, 0, 0, 0.98);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--liberia-red);
     border-radius: 20px;
 }
 
 .glass-modal-header {
-    background: rgba(255, 255, 255, 0.05);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(191, 10, 48, 0.2), rgba(0, 40, 104, 0.2));
+    border-bottom: 1px solid var(--liberia-red);
 }
 
 /* Task Cards */
@@ -319,15 +403,16 @@ body {
     border-radius: 12px;
     padding: 15px;
     margin-bottom: 10px;
-    border-left: 3px solid rgba(255, 255, 255, 0.5);
+    border-left: 3px solid var(--liberia-red);
     transition: all 0.3s ease;
     cursor: pointer;
 }
 
 .task-card:hover {
     transform: translateY(-3px);
-    background: rgba(0, 0, 0, 0.7);
-    border-left-color: #ffffff;
+    background: rgba(191, 10, 48, 0.1);
+    border-left-color: var(--liberia-white);
+    box-shadow: var(--red-glow);
 }
 
 /* Glass Card Hover Effect */
@@ -344,7 +429,7 @@ body {
 }
 
 .glass-card-hover:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(191, 10, 48, 0.15);
     transform: translateX(5px);
 }
 
@@ -361,7 +446,7 @@ body {
 }
 
 .activity-item:hover, .schedule-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(191, 10, 48, 0.15);
     transform: translateX(5px);
 }
 
@@ -428,13 +513,12 @@ body {
         font-size: 1.2rem;
     }
     
-    /* Chat responsive */
     .chat-sidebar {
         width: 100%;
         height: auto;
         max-height: 300px;
         border-right: none;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
+        border-bottom: 1px solid var(--liberia-red);
     }
     
     .chat-main {
@@ -445,7 +529,6 @@ body {
         max-width: 90%;
     }
     
-    /* Table responsive */
     .table-responsive {
         overflow-x: auto;
     }
@@ -485,53 +568,53 @@ body {
     }
 }
 
-/* Scrollbar - Clean white/black */
+/* Scrollbar - Liberia colors */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.5);
     border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, var(--liberia-red), var(--liberia-blue));
     border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.4);
+    background: var(--liberia-red);
 }
 
 /* SweetAlert2 custom styling */
 .swal2-popup {
     backdrop-filter: blur(20px);
     background: rgba(0, 0, 0, 0.98) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--liberia-red);
     border-radius: 20px;
 }
 
 .swal2-title, .swal2-html-container {
-    color: white !important;
+    color: var(--liberia-white) !important;
 }
 
 .swal2-input, .swal2-select, .swal2-textarea, .swal2-file {
     background: rgba(0, 0, 0, 0.7) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    color: white !important;
+    border: 1px solid var(--liberia-red) !important;
+    color: var(--liberia-white) !important;
     border-radius: 10px !important;
 }
 
 .swal2-input:focus, .swal2-select:focus, .swal2-textarea:focus {
-    border-color: rgba(255, 255, 255, 0.5) !important;
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1) !important;
+    border-color: var(--liberia-red) !important;
+    box-shadow: var(--red-glow) !important;
 }
 
 /* Chat Styles */
 .chat-sidebar {
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid var(--liberia-red);
     padding: 15px;
     height: 500px;
     overflow-y: auto;
@@ -542,7 +625,7 @@ body {
         height: auto;
         max-height: 250px;
         border-right: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid var(--liberia-red);
     }
 }
 
@@ -564,13 +647,13 @@ body {
 }
 
 .chat-user-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(191, 10, 48, 0.15);
     transform: translateX(5px);
 }
 
 .chat-user-item.active {
-    background: rgba(255, 255, 255, 0.15);
-    border-left: 2px solid #ffffff;
+    background: linear-gradient(135deg, rgba(191, 10, 48, 0.2), rgba(0, 40, 104, 0.2));
+    border-left: 2px solid var(--liberia-red);
 }
 
 .chat-user-avatar {
@@ -578,12 +661,12 @@ body {
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
-    background: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, var(--liberia-red), var(--liberia-blue));
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    color: white;
+    color: var(--liberia-white);
 }
 
 .chat-user-info {
@@ -593,7 +676,7 @@ body {
 .chat-user-name {
     font-weight: 600;
     font-size: 0.9rem;
-    color: #ffffff;
+    color: var(--liberia-white);
 }
 
 .chat-user-status {
@@ -634,13 +717,13 @@ body {
     height: 35px;
     border-radius: 50%;
     object-fit: cover;
-    background: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, var(--liberia-red), var(--liberia-blue));
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
     font-size: 0.8rem;
-    color: white;
+    color: var(--liberia-white);
     flex-shrink: 0;
 }
 
@@ -652,7 +735,7 @@ body {
 }
 
 .chat-message.own .chat-message-bubble {
-    background: rgba(255, 255, 255, 0.15);
+    background: linear-gradient(135deg, rgba(191, 10, 48, 0.2), rgba(0, 40, 104, 0.2));
 }
 
 .chat-message-name {
@@ -665,7 +748,7 @@ body {
 .chat-message-text {
     font-size: 0.9rem;
     word-wrap: break-word;
-    color: #ffffff;
+    color: var(--liberia-white);
 }
 
 .chat-message-time {
@@ -678,7 +761,7 @@ body {
 
 .chat-input-container {
     padding: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--liberia-red);
 }
 
 .chat-divider {
@@ -691,7 +774,7 @@ body {
 
 .chat-divider hr {
     margin: 10px 0;
-    border-color: rgba(255,255,255,0.08);
+    border-color: var(--liberia-red);
 }
 
 /* Chat Media Styles */
@@ -716,17 +799,17 @@ body {
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(191, 10, 48, 0.1);
     border-radius: 20px;
     text-decoration: none;
     font-size: 0.8rem;
-    color: white;
+    color: var(--liberia-white);
 }
 
 .chat-file-link:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(191, 10, 48, 0.2);
     text-decoration: underline;
-    color: white;
+    color: var(--liberia-white);
 }
 
 /* Profile Picture Preview */
@@ -736,7 +819,7 @@ body {
     border-radius: 50%;
     object-fit: cover;
     margin-bottom: 10px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    border: 2px solid var(--liberia-red);
 }
 
 .profile-picture-preview img {
@@ -748,11 +831,11 @@ body {
 
 /* Glass Badge */
 .glass-badge {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.5);
     border-radius: 20px;
     padding: 6px 12px;
     font-size: 0.85rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--liberia-red);
 }
 
 /* Responsive table */
@@ -769,12 +852,12 @@ body {
     border-radius: 16px;
     padding: 20px;
     text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--liberia-red);
 }
 
 .glass-info-card i {
     font-size: 2rem;
-    color: #ffffff;
+    color: var(--liberia-red);
     margin-bottom: 10px;
 }
 
@@ -782,7 +865,7 @@ body {
     font-size: 1.8rem;
     font-weight: 700;
     margin: 5px 0;
-    color: #ffffff;
+    color: var(--liberia-white);
 }
 
 .glass-info-card p {
@@ -798,24 +881,25 @@ body {
     padding: 30px 20px;
     text-align: center;
     cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--liberia-red);
     transition: all 0.3s ease;
 }
 
 .glass-admin-card:hover {
     transform: translateY(-5px);
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, rgba(191, 10, 48, 0.1), rgba(0, 40, 104, 0.1));
+    border-color: var(--liberia-white);
+    box-shadow: var(--red-glow);
 }
 
 .glass-admin-card i {
     font-size: 2.5rem;
     margin-bottom: 10px;
-    color: #ffffff;
+    color: var(--liberia-red);
 }
 
 .glass-admin-card h5 {
-    color: #ffffff;
+    color: var(--liberia-white);
     font-size: 1rem;
 }
 
@@ -896,4 +980,41 @@ body {
     .glass-admin-card h5 {
         font-size: 0.7rem;
     }
+}
+
+/* Liberia Flag Animation */
+@keyframes liberiaWave {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* Special effect for Liberia's star */
+.liberia-star {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 30px;
+    height: 30px;
+    background: var(--liberia-white);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    opacity: 0.3;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+/* Add star to body */
+body::after {
+    content: '★';
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 24px;
+    color: var(--liberia-white);
+    opacity: 0.3;
+    animation: pulse 2s infinite;
+    font-weight: bold;
 }
