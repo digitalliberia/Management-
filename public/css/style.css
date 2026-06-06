@@ -742,3 +742,52 @@ body {
     font-size: 0.5rem;
     opacity: 0.5;
 }
+
+/* Chat Media Styles */
+.chat-media-container {
+    margin-top: 8px;
+}
+
+.chat-image {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.chat-image:hover {
+    transform: scale(1.02);
+}
+
+.chat-file-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(108, 99, 255, 0.1);
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 0.8rem;
+}
+
+.chat-file-link:hover {
+    background: rgba(108, 99, 255, 0.2);
+    text-decoration: underline;
+}
+
+audio {
+    max-width: 200px;
+    height: 36px;
+    border-radius: 20px;
+}
+
+.recording {
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
