@@ -1,3 +1,4 @@
+
 :root {
     --liberia-red: #BF0A30;
     --liberia-white: #FFFFFF;
@@ -30,10 +31,6 @@ body {
     min-height: 100vh;
     color: var(--liberia-white);
     position: relative;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
-    padding-bottom: env(safe-area-inset-bottom, 20px);
 }
 
 /* Subtle grid pattern for depth */
@@ -49,21 +46,6 @@ body::before {
     background-size: 50px 50px;
     pointer-events: none;
     z-index: 0;
-}
-
-body::after {
-    content: '★';
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    font-size: 28px;
-    color: var(--liberia-white);
-    opacity: 0.3;
-    animation: pulse 3s infinite;
-    font-weight: bold;
-    text-shadow: var(--blue-glow);
-    z-index: 999;
-    pointer-events: none;
 }
 
 /* Glass Navigation */
@@ -133,7 +115,6 @@ body::after {
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-    cursor: pointer;
 }
 
 .glass-nav-item i {
@@ -180,10 +161,6 @@ body::after {
     padding: 20px;
     position: relative;
     z-index: 10;
-    overflow-y: visible !important;
-    height: auto !important;
-    min-height: calc(100vh - 70px);
-    padding-bottom: 100px !important;
 }
 
 /* Glass Cards */
@@ -197,8 +174,6 @@ body::after {
     animation: fadeInUp 0.5s ease-out;
     position: relative;
     overflow: hidden;
-    height: auto !important;
-    min-height: auto !important;
 }
 
 .glass-card::before {
@@ -219,8 +194,6 @@ body::after {
     border: 1px solid rgba(0, 40, 104, 0.2);
     overflow: hidden;
     margin-bottom: 20px;
-    height: auto !important;
-    min-height: auto !important;
 }
 
 .card-header-glass {
@@ -348,7 +321,7 @@ body::after {
     color: #000000;
 }
 
-/* SCHEDULE ITEMS */
+/* SCHEDULE ITEMS - Upcoming schedule text improved */
 .schedule-item {
     display: flex;
     align-items: center;
@@ -520,8 +493,6 @@ body::after {
     padding: 15px;
     height: 500px;
     overflow-y: auto;
-    max-height: 300px;
-    -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: 768px) {
@@ -596,8 +567,6 @@ body::after {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    max-height: 400px;
-    -webkit-overflow-scrolling: touch;
 }
 
 .chat-message {
@@ -682,6 +651,67 @@ body::after {
 .chat-input-container {
     padding: 10px;
     border-top: 1px solid var(--liberia-blue);
+}
+
+.chat-divider {
+    margin: 10px 0;
+    text-align: center;
+    position: relative;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.7rem;
+}
+
+.chat-divider hr {
+    margin: 10px 0;
+    border-color: var(--liberia-blue);
+}
+
+/* Chat Media Styles */
+.chat-media-container {
+    margin-top: 8px;
+}
+
+.chat-image {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.chat-image:hover {
+    transform: scale(1.02);
+}
+
+.chat-file-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(0, 40, 104, 0.15);
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 0.8rem;
+    color: rgba(200, 220, 255, 0.9);
+}
+
+.chat-file-link:hover {
+    background: rgba(0, 40, 104, 0.3);
+    text-decoration: underline;
+    color: #ffffff;
+}
+
+/* Chat Read Receipts */
+.chat-read-receipts {
+    margin-top: 4px;
+    font-size: 0.6rem;
+    text-align: right;
+    opacity: 0.6;
+    color: #666666;
+}
+
+.chat-message.own .chat-read-receipts {
+    color: rgba(255,255,255,0.6);
 }
 
 /* Buttons */
@@ -843,17 +873,9 @@ body::after {
     color: #ffffff;
 }
 
+/* Modal body text */
 .modal-body label {
     color: rgba(220, 240, 255, 0.9);
-}
-
-/* Modal z-index fixes */
-.modal {
-    z-index: 1060;
-}
-
-.modal-backdrop {
-    z-index: 1050;
 }
 
 /* Glass Card Hover Effect */
@@ -886,16 +908,11 @@ body::after {
     }
 }
 
-@keyframes pulse {
-    0%, 100% { opacity: 0.3; transform: scale(1); }
-    50% { opacity: 0.8; transform: scale(1.1); }
-}
-
 .fade-in {
     animation: fadeInUp 0.5s ease-out;
 }
 
-/* Responsive Design - Mobile First */
+/* Responsive Design */
 @media (max-width: 768px) {
     .sidebar-glass {
         position: fixed;
@@ -915,7 +932,6 @@ body::after {
         width: 100%;
         margin-left: 0;
         padding: 15px;
-        padding-bottom: 120px !important;
     }
     
     .glass-stat-card {
@@ -954,34 +970,14 @@ body::after {
         min-width: 600px;
     }
     
-    /* Scrollable list max heights */
-    .activity-list,
-    .schedule-list {
-        max-height: 300px;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
+    .schedule-item .text-muted,
+    .activity-item .text-muted {
+        font-size: 0.6rem;
     }
     
-    #tasksList,
-    #leaveRequestsList,
-    #expensesList,
-    #performanceReviews,
-    #announcementsList {
-        max-height: 400px;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-    
-    .chat-messages {
-        max-height: 350px;
-    }
-    
-    .chat-sidebar {
-        max-height: 200px;
-    }
-    
-    .glass-card:last-child {
-        margin-bottom: 40px;
+    .schedule-item small,
+    .activity-item small {
+        font-size: 0.55rem;
     }
 }
 
@@ -1015,66 +1011,6 @@ body::after {
     }
 }
 
-/* For very small screens */
-@media (max-width: 480px) {
-    .glass-nav .container-fluid {
-        padding-left: 50px;
-    }
-    
-    .brand-text {
-        font-size: 0.9rem;
-    }
-    
-    .btn-glass-logout {
-        padding: 4px 8px;
-        font-size: 0.7rem;
-    }
-    
-    .card-header-glass {
-        font-size: 0.8rem;
-    }
-    
-    .activity-list,
-    .schedule-list {
-        max-height: 250px;
-    }
-    
-    #tasksList,
-    #leaveRequestsList,
-    #expensesList,
-    #performanceReviews,
-    #announcementsList {
-        max-height: 350px;
-    }
-    
-    .chat-messages {
-        max-height: 300px;
-    }
-    
-    .chat-sidebar {
-        max-height: 180px;
-    }
-    
-    .main-glass {
-        padding-bottom: 100px !important;
-    }
-}
-
-/* iOS Safari specific smooth scrolling */
-@supports (-webkit-touch-callout: none) {
-    .activity-list,
-    .schedule-list,
-    #tasksList,
-    #leaveRequestsList,
-    #expensesList,
-    #performanceReviews,
-    #announcementsList,
-    .chat-messages,
-    .chat-sidebar {
-        -webkit-overflow-scrolling: touch;
-    }
-}
-
 /* Scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
@@ -1093,33 +1029,6 @@ body::after {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--liberia-blue);
-}
-
-/* Custom scrollbar styling for lists */
-.activity-list::-webkit-scrollbar,
-.schedule-list::-webkit-scrollbar,
-#tasksList::-webkit-scrollbar,
-.chat-messages::-webkit-scrollbar,
-.chat-sidebar::-webkit-scrollbar {
-    width: 4px;
-}
-
-.activity-list::-webkit-scrollbar-track,
-.schedule-list::-webkit-scrollbar-track,
-#tasksList::-webkit-scrollbar-track,
-.chat-messages::-webkit-scrollbar-track,
-.chat-sidebar::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-}
-
-.activity-list::-webkit-scrollbar-thumb,
-.schedule-list::-webkit-scrollbar-thumb,
-#tasksList::-webkit-scrollbar-thumb,
-.chat-messages::-webkit-scrollbar-thumb,
-.chat-sidebar::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, var(--liberia-blue), var(--liberia-light-blue));
-    border-radius: 10px;
 }
 
 /* SweetAlert2 custom styling */
@@ -1335,20 +1244,64 @@ body::after {
     }
 }
 
+@media (max-width: 480px) {
+    .glass-nav .container-fluid {
+        padding-left: 50px;
+    }
+    
+    .brand-text {
+        font-size: 0.9rem;
+    }
+    
+    .btn-glass-logout {
+        padding: 4px 8px;
+        font-size: 0.7rem;
+    }
+    
+    .card-header-glass {
+        font-size: 0.8rem;
+    }
+}
+
+/* Liberia Flag Animation */
+@keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+/* Add star to body */
+body::after {
+    content: '★';
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 28px;
+    color: var(--liberia-white);
+    opacity: 0.3;
+    animation: pulse 3s infinite;
+    font-weight: bold;
+    text-shadow: var(--blue-glow);
+    z-index: 999;
+    pointer-events: none;
+}
+
 /* Blue accent text */
 .blue-accent {
     color: var(--liberia-blue);
     text-shadow: var(--blue-glow);
 }
 
+/* Success message color */
 .text-success {
     color: #4caf50 !important;
 }
 
+/* Warning message color */
 .text-warning {
     color: #ff9800 !important;
 }
 
+/* Global secondary text improvements */
 .text-muted {
     color: rgba(200, 220, 255, 0.85) !important;
 }
