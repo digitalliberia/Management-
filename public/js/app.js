@@ -14,38 +14,55 @@ let currentChatType = 'group';
 let currentChatUserId = null;
 let chatUnsubscribe = null;
 
+// Attendance tracking variables
+let attendanceCheckInTime = null;
+let attendanceCheckOutTime = null;
+let attendanceIntervalId = null;
+let isAttendanceCheckedIn = false;
+let isAttendanceCheckedOut = false;
+
 // ========== OFFICE LOCATION ==========
-// Office address: 76VG+38 Monrovia, Liberia
-// Using the center of the polygon for distance calculation
 const OFFICE_LOCATION = {
-    lat: 6.2923,   // Center of your polygon
-    lng: -10.7740  // Center of your polygon
+    lat: 6.2923,
+    lng: -10.7740
 };
 
-// ALLOWED_RADIUS set to 5000 meters (5km) for testing
 const ALLOWED_RADIUS_METERS = 5000;
-
 let currentUserLocation = null;
 let locationVerified = false;
 
 // ========== UTILITY FUNCTIONS ==========
 
-// Calculate distance between two coordinates in meters
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Earth's radius in km
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
               Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
               Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c * 1000; // Distance in meters
+    return R * c * 1000;
 }
 
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function formatTime(seconds) {
+    if (seconds < 0) return '0s';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hours > 0) {
+        return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+        return `${minutes}m ${secs}s`;
+    } else {
+        return `${secs}s`;
+    }
 }
 
 // ========== INITIALIZATION ==========
@@ -86,6 +103,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const editProfileBtn = document.getElementById('editProfileBtn');
         if (editProfileBtn) editProfileBtn.style.display = 'inline-block';
         
+        // Set up real-time attendance listener
+        setupRealtimeAttendance();
+        
         await loadDashboardData();
         await loadAttendanceHistory();
         await loadAppointments();
@@ -99,7 +119,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateAttendanceUI();
         addChatAttachmentButtons();
         
-        // Auto-detect location on attendance section load
         const attendanceObserver = new MutationObserver(() => {
             const attendanceSection = document.getElementById('attendanceSection');
             if (attendanceSection && attendanceSection.style.display !== 'none') {
@@ -115,6 +134,97 @@ document.addEventListener('DOMContentLoaded', async () => {
         showLoginModal();
     }
 });
+
+// ========== REAL-TIME ATTENDANCE LISTENER ==========
+function setupRealtimeAttendance() {
+    const today = new Date().toISOString().split('T')[0];
+    const q = query(collection(db, 'attendance'), 
+        where('employeeId', '==', currentEmployee?.id), 
+        where('date', '==', today)
+    );
+    
+    onSnapshot(q, (snapshot) => {
+        let hasCheckIn = false;
+        let hasCheckOut = false;
+        let checkInTime = null;
+        let checkOutTime = null;
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.checkIn) {
+                hasCheckIn = true;
+                checkInTime = data.checkIn.toDate();
+            }
+            if (data.checkOut) {
+                hasCheckOut = true;
+                checkOutTime = data.checkOut.toDate();
+            }
+        });
+        
+        isAttendanceCheckedIn = hasCheckIn;
+        isAttendanceCheckedOut = hasCheckOut;
+        
+        if (hasCheckIn && !hasCheckOut) {
+            attendanceCheckInTime = checkInTime;
+            // Start the timer
+            if (attendanceIntervalId) {
+                clearInterval(attendanceIntervalId);
+            }
+            attendanceIntervalId = setInterval(() => {
+                updateTodayHours();
+            }, 1000);
+            updateTodayHours();
+        } else if (hasCheckIn && hasCheckOut) {
+            if (attendanceIntervalId) {
+                clearInterval(attendanceIntervalId);
+                attendanceIntervalId = null;
+            }
+            updateTodayHours();
+        } else {
+            if (attendanceIntervalId) {
+                clearInterval(attendanceIntervalId);
+                attendanceIntervalId = null;
+            }
+            const todayHoursElem = document.getElementById('todayHours');
+            if (todayHoursElem) todayHoursElem.textContent = '0s';
+        }
+        
+        updateAttendanceUI();
+        loadAttendanceHistory();
+    });
+}
+
+// ========== UPDATE TODAY'S HOURS ==========
+function updateTodayHours() {
+    const todayHoursElem = document.getElementById('todayHours');
+    if (!todayHoursElem) return;
+    
+    if (isAttendanceCheckedIn && !isAttendanceCheckedOut && attendanceCheckInTime) {
+        const now = new Date();
+        const diffSeconds = (now - attendanceCheckInTime) / 1000;
+        todayHoursElem.textContent = formatTime(diffSeconds);
+    } else if (isAttendanceCheckedIn && isAttendanceCheckedOut) {
+        // Get the total hours from the latest attendance record
+        const today = new Date().toISOString().split('T')[0];
+        const q = query(collection(db, 'attendance'), 
+            where('employeeId', '==', currentEmployee?.id), 
+            where('date', '==', today)
+        );
+        getDocs(q).then(snapshot => {
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.checkIn && data.checkOut) {
+                    const checkIn = data.checkIn.toDate();
+                    const checkOut = data.checkOut.toDate();
+                    const hours = (checkOut - checkIn) / (1000 * 60 * 60);
+                    todayHoursElem.textContent = hours.toFixed(1) + 'h';
+                }
+            });
+        });
+    } else {
+        todayHoursElem.textContent = '0s';
+    }
+}
 
 // ========== CHAT ATTACHMENT ==========
 function addChatAttachmentButtons() {
@@ -337,7 +447,6 @@ window.getLocation = function() {
             
             currentUserLocation = { lat: userLat, lng: userLng };
             
-            // Calculate distance from office location
             const distance = calculateDistance(
                 userLat, userLng,
                 OFFICE_LOCATION.lat, OFFICE_LOCATION.lng
@@ -545,7 +654,7 @@ async function updateAttendanceUI() {
         } else if (hasCheckIn && !hasCheckOut) {
             if (checkInBtn) checkInBtn.style.display = 'none';
             if (checkOutBtn) { checkOutBtn.style.display = 'inline-block'; checkOutBtn.disabled = !locationVerified; }
-            if (statusDiv) statusDiv.innerHTML = '<div class="alert alert-success">✅ Checked In</div>';
+            if (statusDiv) statusDiv.innerHTML = '<div class="alert alert-success">✅ Checked In - Time Elapsed: <span id="timeElapsed">0s</span></div>';
         } else {
             if (checkInBtn) checkInBtn.style.display = 'none';
             if (checkOutBtn) checkOutBtn.style.display = 'none';
@@ -564,16 +673,32 @@ async function loadDashboardData() {
         const attendanceSnapshot = await getDocs(attendanceQ);
         
         let hours = 0;
+        let checkInTime = null;
+        let checkOutTime = null;
         attendanceSnapshot.forEach(doc => {
             const data = doc.data();
+            if (data.checkIn) {
+                checkInTime = data.checkIn.toDate();
+            }
             if (data.checkIn && data.checkOut) {
                 const checkIn = data.checkIn.toDate();
                 const checkOut = data.checkOut.toDate();
                 hours = (checkOut - checkIn) / (1000 * 60 * 60);
+                checkOutTime = checkOut;
             }
         });
+        
         const todayHoursElem = document.getElementById('todayHours');
-        if (todayHoursElem) todayHoursElem.textContent = hours.toFixed(1);
+        if (todayHoursElem) {
+            if (checkInTime && !checkOutTime) {
+                // Currently checked in - live timer will handle this
+                // The interval in setupRealtimeAttendance updates this
+            } else if (checkInTime && checkOutTime) {
+                todayHoursElem.textContent = hours.toFixed(1) + 'h';
+            } else {
+                todayHoursElem.textContent = '0s';
+            }
+        }
         
         const tasksQ = query(collection(db, 'tasks'));
         const tasksSnapshot = await getDocs(tasksQ);
@@ -598,12 +723,15 @@ async function loadDashboardData() {
         const activitiesHtml = [];
         activitiesSnapshot.forEach(doc => {
             const data = doc.data();
+            const elapsed = data.checkIn && data.checkOut ? 
+                formatTime((data.checkOut.toDate() - data.checkIn.toDate()) / 1000) : 
+                'In progress';
             activitiesHtml.push(`
                 <div class="activity-item glass-card-hover" onclick="showAttendanceDetail('${doc.id}')" style="cursor: pointer;">
                     <i class="fas fa-clock"></i>
                     <div class="flex-grow-1">
                         <strong>${data.employeeName || 'Employee'}</strong> - ${data.status || 'Checked in'}
-                        <small class="d-block text-muted">${data.date} at ${data.checkIn?.toDate().toLocaleTimeString() || ''}</small>
+                        <small class="d-block text-muted">${data.date} at ${data.checkIn?.toDate().toLocaleTimeString() || ''} (${elapsed})</small>
                     </div>
                     <i class="fas fa-chevron-right"></i>
                 </div>
@@ -818,6 +946,9 @@ window.showAttendanceDetail = async function(attendanceId) {
     const att = attendanceDoc.data();
     
     const distance = att.officeDistance ? `${att.officeDistance.toFixed(1)}m` : 'N/A';
+    const elapsed = att.checkIn && att.checkOut ? 
+        formatTime((att.checkOut.toDate() - att.checkIn.toDate()) / 1000) : 
+        'In progress';
     
     Swal.fire({
         title: `${att.employeeName}'s Attendance`,
@@ -826,6 +957,7 @@ window.showAttendanceDetail = async function(attendanceId) {
                 <p><strong>Date:</strong> ${att.date}</p>
                 <p><strong>Check In:</strong> ${att.checkIn?.toDate().toLocaleTimeString() || 'Not checked in'}</p>
                 <p><strong>Check Out:</strong> ${att.checkOut?.toDate().toLocaleTimeString() || 'Not checked out'}</p>
+                <p><strong>Total Time:</strong> ${elapsed}</p>
                 <p><strong>Status:</strong> <span class="badge bg-${att.status === 'present' ? 'success' : 'warning'}">${att.status}</span></p>
                 <p><strong>Distance from Office:</strong> ${distance}</p>
                 <p><strong>Verified:</strong> ${att.checkInVerified ? '✅ Yes' : '❌ No'}</p>
@@ -903,10 +1035,14 @@ async function loadAttendanceHistory() {
         snapshot.forEach(doc => {
             const data = doc.data();
             let hours = '-';
+            let elapsed = '-';
             if (data.checkIn && data.checkOut) {
                 const checkIn = data.checkIn.toDate();
                 const checkOut = data.checkOut.toDate();
                 hours = ((checkOut - checkIn) / (1000 * 60 * 60)).toFixed(1);
+                elapsed = formatTime((checkOut - checkIn) / 1000);
+            } else if (data.checkIn) {
+                elapsed = 'In progress';
             }
             
             const locationStr = data.officeDistance ? 
@@ -918,7 +1054,7 @@ async function loadAttendanceHistory() {
                     <td>${data.date}</td>
                     <td>${data.checkIn?.toDate().toLocaleTimeString() || '-'}</td>
                     <td>${data.checkOut?.toDate().toLocaleTimeString() || '-'}</td>
-                    <td>${hours}</td>
+                    <td>${elapsed}</td>
                     <td><span class="status-badge status-${data.status}">${data.status}</span></td>
                     <td><small>${locationStr}</small></td>
                 </tr>
@@ -929,6 +1065,7 @@ async function loadAttendanceHistory() {
     }
 }
 
+// ========== REST OF THE FUNCTIONS (unchanged from original) ==========
 async function loadAppointments() {
     try {
         const q = query(collection(db, 'appointments'), orderBy('startTime', 'desc'));
