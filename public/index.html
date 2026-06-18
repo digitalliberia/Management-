@@ -8,10 +8,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
-    <!-- SweetAlert2 for beautiful popups -->
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        /* Mobile menu button */
         .mobile-menu-btn {
             position: fixed;
             top: 15px;
@@ -31,15 +30,10 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .mobile-menu-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
+        .mobile-menu-btn:hover { background: rgba(255, 255, 255, 0.2); }
         
-        /* Mobile responsive styles */
         @media (max-width: 768px) {
-            .mobile-menu-btn {
-                display: flex;
-            }
+            .mobile-menu-btn { display: flex; }
             .sidebar-glass {
                 position: fixed;
                 left: -280px;
@@ -51,129 +45,46 @@
                 background: rgba(0, 0, 0, 0.95);
                 backdrop-filter: blur(15px);
             }
-            .sidebar-glass.open {
-                left: 0;
-            }
-            .main-glass {
-                width: 100%;
-                margin-left: 0;
-                padding: 15px;
-            }
-            .glass-nav .container-fluid {
-                padding-left: 60px;
-            }
-            .glass-badge {
-                display: none;
-            }
-            .glass-badge:first-of-type {
-                display: inline-block;
-            }
-            .glass-stat-card {
-                padding: 12px;
-            }
-            .stat-icon i {
-                font-size: 1.5rem;
-            }
-            .stat-info h3 {
-                font-size: 1.2rem;
-            }
-            .stat-info p {
-                font-size: 0.7rem;
-            }
-            .card-header-glass {
-                font-size: 0.9rem;
-                padding: 10px 12px;
-            }
-            .glass-card {
-                padding: 12px;
-            }
-            .glass-card-inner {
-                margin-bottom: 12px;
-            }
-            /* Chat responsive */
-            .chat-sidebar {
-                width: 100%;
-                height: auto;
-                max-height: 250px;
-                border-right: none;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-            }
-            .chat-main {
-                width: 100%;
-            }
-            .chat-message {
-                max-width: 95%;
-            }
-            /* Table responsive */
-            .table-responsive {
-                overflow-x: auto;
-            }
-            .glass-table {
-                min-width: 500px;
-            }
-            /* Stats row */
-            .row.g-4 {
-                --bs-gutter-y: 0.5rem;
-            }
-            .col-md-3 {
-                margin-bottom: 10px;
-            }
-            /* Buttons */
-            .btn-glass-primary, .btn-glass-success, .btn-glass-danger {
-                padding: 8px 16px;
-                font-size: 0.85rem;
-            }
-            /* Modal on mobile */
-            .modal-dialog {
-                margin: 10px;
-            }
-            /* Admin cards */
-            .glass-admin-card {
-                padding: 15px 10px;
-            }
-            .glass-admin-card i {
-                font-size: 1.8rem;
-            }
-            .glass-admin-card h5 {
-                font-size: 0.8rem;
-            }
+            .sidebar-glass.open { left: 0; }
+            .main-glass { width: 100%; margin-left: 0; padding: 15px; }
+            .glass-nav .container-fluid { padding-left: 60px; }
+            .glass-badge { display: none; }
+            .glass-badge:first-of-type { display: inline-block; }
+            .glass-stat-card { padding: 12px; }
+            .stat-icon i { font-size: 1.5rem; }
+            .stat-info h3 { font-size: 1.2rem; }
+            .stat-info p { font-size: 0.7rem; }
+            .card-header-glass { font-size: 0.9rem; padding: 10px 12px; }
+            .glass-card { padding: 12px; }
+            .glass-card-inner { margin-bottom: 12px; }
+            .chat-sidebar { width: 100%; height: auto; max-height: 250px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); }
+            .chat-main { width: 100%; }
+            .chat-message { max-width: 95%; }
+            .table-responsive { overflow-x: auto; }
+            .glass-table { min-width: 500px; }
+            .row.g-4 { --bs-gutter-y: 0.5rem; }
+            .col-md-3 { margin-bottom: 10px; }
+            .btn-glass-primary, .btn-glass-success, .btn-glass-danger { padding: 8px 16px; font-size: 0.85rem; }
+            .modal-dialog { margin: 10px; }
+            .glass-admin-card { padding: 15px 10px; }
+            .glass-admin-card i { font-size: 1.8rem; }
+            .glass-admin-card h5 { font-size: 0.8rem; }
         }
         
         @media (min-width: 769px) and (max-width: 1024px) {
-            .glass-nav-item span {
-                font-size: 0.8rem;
-            }
-            .glass-nav-item i {
-                font-size: 1rem;
-            }
-            .stat-info h3 {
-                font-size: 1.2rem;
-            }
-            .main-glass {
-                padding: 15px;
-            }
+            .glass-nav-item span { font-size: 0.8rem; }
+            .glass-nav-item i { font-size: 1rem; }
+            .stat-info h3 { font-size: 1.2rem; }
+            .main-glass { padding: 15px; }
         }
         
         @media (max-width: 480px) {
-            .glass-stat-card {
-                flex-direction: column;
-                text-align: center;
-                gap: 8px;
-            }
-            .brand-text {
-                font-size: 1rem;
-            }
-            .glass-nav .container-fluid {
-                padding-left: 50px;
-                padding-right: 10px;
-            }
-            .btn-glass-logout {
-                padding: 5px 10px;
-                font-size: 0.75rem;
-            }
+            .glass-stat-card { flex-direction: column; text-align: center; gap: 8px; }
+            .brand-text { font-size: 1rem; }
+            .glass-nav .container-fluid { padding-left: 50px; padding-right: 10px; }
+            .btn-glass-logout { padding: 5px 10px; font-size: 0.75rem; }
         }
         
-        /* Overlay for mobile menu */
         .sidebar-overlay {
             position: fixed;
             top: 0;
@@ -184,8 +95,77 @@
             z-index: 1040;
             display: none;
         }
-        .sidebar-overlay.active {
-            display: block;
+        .sidebar-overlay.active { display: block; }
+
+        /* Fix for white background buttons in modals - black text */
+        .swal2-confirm,
+        .swal2-cancel,
+        .swal2-deny {
+            color: #000000 !important;
+        }
+        .swal2-confirm:hover,
+        .swal2-cancel:hover,
+        .swal2-deny:hover {
+            color: #000000 !important;
+        }
+        /* SweetAlert2 input text color */
+        .swal2-input,
+        .swal2-textarea,
+        .swal2-select {
+            color: #000000 !important;
+            background: #ffffff !important;
+        }
+        .swal2-input::placeholder {
+            color: #666666 !important;
+        }
+        /* Modal footer buttons */
+        .modal-footer .btn {
+            color: #000000 !important;
+        }
+        .modal-footer .btn-glass-primary {
+            color: #ffffff !important;
+        }
+        .modal-footer .btn-glass-secondary {
+            color: #000000 !important;
+            background: rgba(255, 255, 255, 0.9) !important;
+        }
+        /* Glass modal body text */
+        .glass-modal .modal-body label {
+            color: rgba(220, 240, 255, 0.9);
+        }
+        /* Location info styling */
+        .office-location-info {
+            background: rgba(0, 40, 104, 0.2);
+            border: 1px solid var(--liberia-blue);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .office-location-info i {
+            color: var(--liberia-gold);
+            margin-right: 8px;
+        }
+        .location-status {
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        .location-status.verified {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            color: #a5d6a7;
+        }
+        .location-status.unverified {
+            background: rgba(255, 152, 0, 0.2);
+            border: 1px solid #ff9800;
+            color: #ffcc80;
+        }
+        .location-status.error {
+            background: rgba(191, 10, 48, 0.2);
+            border: 1px solid var(--liberia-red);
+            color: #ffaaaa;
         }
     </style>
 </head>
@@ -231,48 +211,37 @@
             <div class="col-md-2 sidebar-glass">
                 <div class="nav-list">
                     <a href="#" class="glass-nav-item active" onclick="showSection('dashboard'); closeSidebarOnMobile()">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
+                        <i class="fas fa-tachometer-alt"></i><span>Dashboard</span>
                     </a>
                     <a href="#" class="glass-nav-item" onclick="showSection('attendance'); closeSidebarOnMobile()">
-                        <i class="fas fa-fingerprint"></i>
-                        <span>Attendance</span>
+                        <i class="fas fa-fingerprint"></i><span>Attendance</span>
                     </a>
                     <a href="#" class="glass-nav-item" onclick="showSection('appointments'); closeSidebarOnMobile()">
-                        <i class="fas fa-calendar-check"></i>
-                        <span>Appointments</span>
+                        <i class="fas fa-calendar-check"></i><span>Appointments</span>
                     </a>
                     <a href="#" class="glass-nav-item" onclick="showSection('tasks'); closeSidebarOnMobile()">
-                        <i class="fas fa-tasks"></i>
-                        <span>Tasks</span>
+                        <i class="fas fa-tasks"></i><span>Tasks</span>
                     </a>
                     <a href="#" class="glass-nav-item" onclick="showSection('leave'); closeSidebarOnMobile()">
-                        <i class="fas fa-umbrella-beach"></i>
-                        <span>Leave Requests</span>
+                        <i class="fas fa-umbrella-beach"></i><span>Leave Requests</span>
                     </a>
                     <a href="#" class="glass-nav-item" onclick="showSection('expenses'); closeSidebarOnMobile()">
-                        <i class="fas fa-receipt"></i>
-                        <span>Expenses</span>
+                        <i class="fas fa-receipt"></i><span>Expenses</span>
                     </a>
                     <a href="#" class="glass-nav-item" onclick="showSection('documents'); closeSidebarOnMobile()">
-                        <i class="fas fa-folder"></i>
-                        <span>Documents</span>
+                        <i class="fas fa-folder"></i><span>Documents</span>
                     </a>
                     <a href="#" class="glass-nav-item" onclick="showSection('performance'); closeSidebarOnMobile()">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Performance</span>
+                        <i class="fas fa-chart-line"></i><span>Performance</span>
                     </a>
                     <a href="#" class="glass-nav-item" onclick="showSection('announcements'); closeSidebarOnMobile()">
-                        <i class="fas fa-bullhorn"></i>
-                        <span>Announcements</span>
+                        <i class="fas fa-bullhorn"></i><span>Announcements</span>
                     </a>
                     <a href="#" class="glass-nav-item" onclick="showSection('chat'); closeSidebarOnMobile()">
-                        <i class="fas fa-comments"></i>
-                        <span>Team Chat</span>
+                        <i class="fas fa-comments"></i><span>Team Chat</span>
                     </a>
                     <a href="#" class="glass-nav-item" id="adminMenu" style="display: none;" onclick="showSection('admin'); closeSidebarOnMobile()">
-                        <i class="fas fa-user-shield"></i>
-                        <span>Admin Panel</span>
+                        <i class="fas fa-user-shield"></i><span>Admin Panel</span>
                     </a>
                 </div>
             </div>
@@ -335,45 +304,56 @@
                     </div>
                 </div>
 
-                <!-- Attendance Section -->
+                <!-- Attendance Section - Simplified -->
                 <div id="attendanceSection" style="display: none;" class="glass-card fade-in">
                     <div class="glass-card-inner">
                         <div class="card-header-glass"><i class="fas fa-fingerprint"></i> Daily Attendance</div>
-                        <div class="text-center mb-3 mb-md-4">
+                        
+                        <!-- Office Location Info -->
+                        <div class="office-location-info">
+                            <i class="fas fa-map-pin"></i>
+                            <strong>Office Address:</strong> 76VG+38 Monrovia, Liberia
+                            <br><small class="text-muted">You must be at the office to check in/out</small>
+                        </div>
+
+                        <div class="text-center mb-3">
                             <h3 id="attendanceDate" class="glass-text"></h3>
-                            <div id="attendanceStatus" class="mt-2 mt-md-3"></div>
+                            <div id="attendanceStatus" class="mt-2"></div>
+                            <div id="locationStatus" class="location-status unverified">
+                                <i class="fas fa-spinner fa-spin"></i> Detecting your location...
+                            </div>
                         </div>
+
+                        <!-- Simplified Attendance: Just Check In and Check Out buttons -->
                         <div class="row">
-                            <div class="col-12 col-md-6">
-                                <div class="form-group-glass">
-                                    <label><i class="fas fa-pen"></i> Digital Signature</label>
-                                    <canvas id="signatureCanvas" class="signature-pad"></canvas>
-                                    <button onclick="clearSignature()" class="btn-glass-sm mt-2"><i class="fas fa-eraser"></i> Clear</button>
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-6">
-                                <div class="form-group-glass">
-                                    <label><i class="fas fa-map-marker-alt"></i> Location</label>
-                                    <input type="text" id="locationDisplay" class="glass-input" readonly>
-                                    <button onclick="getLocation()" class="btn-glass-sm mt-2"><i class="fas fa-location-dot"></i> Get Location</button>
-                                </div>
-                                <div class="form-group-glass mt-3">
-                                    <label><i class="fas fa-notes-medical"></i> Notes</label>
-                                    <textarea id="attendanceNotes" rows="3" class="glass-input" placeholder="Any notes about today?"></textarea>
+                            <div class="col-12 text-center">
+                                <div class="form-group-glass mb-3">
+                                    <label><i class="fas fa-map-marker-alt"></i> Your Current Location</label>
+                                    <input type="text" id="locationDisplay" class="glass-input" readonly placeholder="Click 'Get Location' to verify">
+                                    <button onclick="getLocation()" class="btn-glass-sm mt-2">
+                                        <i class="fas fa-location-dot"></i> Get Location & Verify
+                                    </button>
                                 </div>
                             </div>
                         </div>
+
                         <div class="text-center mt-4">
-                            <button onclick="checkIn()" id="checkInBtn" class="btn-glass-success btn-lg"><i class="fas fa-sign-in-alt"></i> Check In</button>
-                            <button onclick="checkOut()" id="checkOutBtn" class="btn-glass-danger btn-lg" style="display: none;"><i class="fas fa-sign-out-alt"></i> Check Out</button>
+                            <button onclick="checkIn()" id="checkInBtn" class="btn-glass-success btn-lg">
+                                <i class="fas fa-sign-in-alt"></i> Check In
+                            </button>
+                            <button onclick="checkOut()" id="checkOutBtn" class="btn-glass-danger btn-lg" style="display: none;">
+                                <i class="fas fa-sign-out-alt"></i> Check Out
+                            </button>
                         </div>
                     </div>
+
+                    <!-- Attendance History -->
                     <div class="glass-card-inner mt-4">
                         <div class="card-header-glass"><i class="fas fa-chart-line"></i> Attendance History</div>
                         <div class="table-responsive">
                             <table class="glass-table">
                                 <thead>
-                                    <tr><th>Employee</th><th>Date</th><th>Check In</th><th>Check Out</th><th>Hours</th><th>Status</th>
+                                    <tr><th>Date</th><th>Check In</th><th>Check Out</th><th>Hours</th><th>Status</th><th>Location</th>
                                 </thead>
                                 <tbody id="attendanceHistoryTable"></tbody>
                             </table>
@@ -609,17 +589,17 @@
     </div>
 
     <!-- Other Modals -->
-    <div class="modal fade" id="appointmentModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-calendar-plus me-2"></i>Schedule Appointment</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Title</label><input type="text" id="appointmentTitle" class="glass-input"></div><div class="mb-3"><label>Type</label><select id="appointmentType" class="glass-input"><option>Client Meeting</option><option>Internal Meeting</option><option>Training</option><option>Performance Review</option><option>Interview</option></select></div><div class="mb-3"><label>Date & Time</label><input type="datetime-local" id="appointmentDateTime" class="glass-input"></div><div class="mb-3"><label>Duration (minutes)</label><input type="number" id="appointmentDuration" class="glass-input" value="60"></div><div class="mb-3"><label>Location/Meeting Link</label><input type="text" id="appointmentLocation" class="glass-input" placeholder="Conference Room A / Zoom Link"></div><div class="mb-3"><label>Description</label><textarea id="appointmentDescription" rows="3" class="glass-input"></textarea></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn-glass-primary" onclick="createAppointment()">Schedule</button></div></div></div></div>
+    <div class="modal fade" id="appointmentModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-calendar-plus me-2"></i>Schedule Appointment</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Title</label><input type="text" id="appointmentTitle" class="glass-input"></div><div class="mb-3"><label>Type</label><select id="appointmentType" class="glass-input"><option>Client Meeting</option><option>Internal Meeting</option><option>Training</option><option>Performance Review</option><option>Interview</option></select></div><div class="mb-3"><label>Date & Time</label><input type="datetime-local" id="appointmentDateTime" class="glass-input"></div><div class="mb-3"><label>Duration (minutes)</label><input type="number" id="appointmentDuration" class="glass-input" value="60"></div><div class="mb-3"><label>Location/Meeting Link</label><input type="text" id="appointmentLocation" class="glass-input" placeholder="Conference Room A / Zoom Link"></div><div class="mb-3"><label>Description</label><textarea id="appointmentDescription" rows="3" class="glass-input"></textarea></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal" style="color:#000 !important;">Cancel</button><button class="btn-glass-primary" onclick="createAppointment()">Schedule</button></div></div></div></div>
 
-    <div class="modal fade" id="taskModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-tasks me-2"></i>Create Task</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Task Title</label><input type="text" id="taskTitle" class="glass-input"></div><div class="mb-3"><label>Priority</label><select id="taskPriority" class="glass-input"><option>Low</option><option>Medium</option><option>High</option><option>Urgent</option></select></div><div class="mb-3"><label>Due Date</label><input type="date" id="taskDueDate" class="glass-input"></div><div class="mb-3"><label>Description</label><textarea id="taskDescription" rows="3" class="glass-input"></textarea></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn-glass-primary" onclick="createTask()">Create Task</button></div></div></div></div>
+    <div class="modal fade" id="taskModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-tasks me-2"></i>Create Task</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Task Title</label><input type="text" id="taskTitle" class="glass-input"></div><div class="mb-3"><label>Priority</label><select id="taskPriority" class="glass-input"><option>Low</option><option>Medium</option><option>High</option><option>Urgent</option></select></div><div class="mb-3"><label>Due Date</label><input type="date" id="taskDueDate" class="glass-input"></div><div class="mb-3"><label>Description</label><textarea id="taskDescription" rows="3" class="glass-input"></textarea></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal" style="color:#000 !important;">Cancel</button><button class="btn-glass-primary" onclick="createTask()">Create Task</button></div></div></div></div>
 
-    <div class="modal fade" id="leaveModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-umbrella-beach me-2"></i>Request Leave</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Leave Type</label><select id="leaveType" class="glass-input"><option>Annual Leave</option><option>Sick Leave</option><option>Unpaid Leave</option><option>Emergency Leave</option></select></div><div class="mb-3"><label>Start Date</label><input type="date" id="leaveStart" class="glass-input"></div><div class="mb-3"><label>End Date</label><input type="date" id="leaveEnd" class="glass-input"></div><div class="mb-3"><label>Reason</label><textarea id="leaveReason" rows="3" class="glass-input"></textarea></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn-glass-primary" onclick="submitLeaveRequest()">Submit Request</button></div></div></div></div>
+    <div class="modal fade" id="leaveModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-umbrella-beach me-2"></i>Request Leave</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Leave Type</label><select id="leaveType" class="glass-input"><option>Annual Leave</option><option>Sick Leave</option><option>Unpaid Leave</option><option>Emergency Leave</option></select></div><div class="mb-3"><label>Start Date</label><input type="date" id="leaveStart" class="glass-input"></div><div class="mb-3"><label>End Date</label><input type="date" id="leaveEnd" class="glass-input"></div><div class="mb-3"><label>Reason</label><textarea id="leaveReason" rows="3" class="glass-input"></textarea></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal" style="color:#000 !important;">Cancel</button><button class="btn-glass-primary" onclick="submitLeaveRequest()">Submit Request</button></div></div></div></div>
 
-    <div class="modal fade" id="expenseModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-receipt me-2"></i>Submit Expense</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Category</label><select id="expenseCategory" class="glass-input"><option>Transportation</option><option>Meals</option><option>Office Supplies</option><option>Software/Tools</option><option>Training</option></select></div><div class="mb-3"><label>Amount (USD)</label><input type="number" id="expenseAmount" class="glass-input" step="0.01"></div><div class="mb-3"><label>Date</label><input type="date" id="expenseDate" class="glass-input"></div><div class="mb-3"><label>Description</label><textarea id="expenseDescription" rows="3" class="glass-input"></textarea></div><div class="mb-3"><label>Receipt</label><input type="file" id="receiptImage" class="glass-input" accept="image/*"></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn-glass-primary" onclick="submitExpense()">Submit</button></div></div></div></div>
+    <div class="modal fade" id="expenseModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-receipt me-2"></i>Submit Expense</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Category</label><select id="expenseCategory" class="glass-input"><option>Transportation</option><option>Meals</option><option>Office Supplies</option><option>Software/Tools</option><option>Training</option></select></div><div class="mb-3"><label>Amount (USD)</label><input type="number" id="expenseAmount" class="glass-input" step="0.01"></div><div class="mb-3"><label>Date</label><input type="date" id="expenseDate" class="glass-input"></div><div class="mb-3"><label>Description</label><textarea id="expenseDescription" rows="3" class="glass-input"></textarea></div><div class="mb-3"><label>Receipt</label><input type="file" id="receiptImage" class="glass-input" accept="image/*"></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal" style="color:#000 !important;">Cancel</button><button class="btn-glass-primary" onclick="submitExpense()">Submit</button></div></div></div></div>
 
-    <div class="modal fade" id="announcementModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-bullhorn me-2"></i>Post Announcement</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Title</label><input type="text" id="announceTitle" class="glass-input"></div><div class="mb-3"><label>Priority</label><select id="announcePriority" class="glass-input"><option>Normal</option><option>High</option><option>Urgent</option></select></div><div class="mb-3"><label>Message</label><textarea id="announceMessage" rows="4" class="glass-input"></textarea></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn-glass-primary" onclick="postAnnouncement()">Post</button></div></div></div></div>
+    <div class="modal fade" id="announcementModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-bullhorn me-2"></i>Post Announcement</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Title</label><input type="text" id="announceTitle" class="glass-input"></div><div class="mb-3"><label>Priority</label><select id="announcePriority" class="glass-input"><option>Normal</option><option>High</option><option>Urgent</option></select></div><div class="mb-3"><label>Message</label><textarea id="announceMessage" rows="4" class="glass-input"></textarea></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal" style="color:#000 !important;">Cancel</button><button class="btn-glass-primary" onclick="postAnnouncement()">Post</button></div></div></div></div>
 
-    <div class="modal fade" id="employeeModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-user-plus me-2"></i>Add Employee</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Full Name</label><input type="text" id="empName" class="glass-input"></div><div class="mb-3"><label>Email</label><input type="email" id="empEmail" class="glass-input"></div><div class="mb-3"><label>DSSN</label><input type="text" id="empDSSN" class="glass-input" placeholder="PYGMNL94LR09Z24"></div><div class="mb-3"><label>Department</label><select id="empDepartment" class="glass-input"><option>Engineering</option><option>Sales</option><option>HR</option><option>Finance</option><option>Operations</option><option>Management</option></select></div><div class="mb-3"><label>Position</label><input type="text" id="empPosition" class="glass-input"></div><div class="mb-3"><label>Phone</label><input type="text" id="empPhone" class="glass-input"></div><div class="mb-3"><label>Salary (USD)</label><input type="number" id="empSalary" class="glass-input"></div><div class="mb-3"><label>Role</label><select id="empRole" class="glass-input"><option>employee</option><option>admin</option><option>super admin</option></select></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn-glass-primary" onclick="addEmployee()">Add Employee</button></div></div></div></div>
+    <div class="modal fade" id="employeeModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-user-plus me-2"></i>Add Employee</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Full Name</label><input type="text" id="empName" class="glass-input"></div><div class="mb-3"><label>Email</label><input type="email" id="empEmail" class="glass-input"></div><div class="mb-3"><label>DSSN</label><input type="text" id="empDSSN" class="glass-input" placeholder="PYGMNL94LR09Z24"></div><div class="mb-3"><label>Department</label><select id="empDepartment" class="glass-input"><option>Engineering</option><option>Sales</option><option>HR</option><option>Finance</option><option>Operations</option><option>Management</option></select></div><div class="mb-3"><label>Position</label><input type="text" id="empPosition" class="glass-input"></div><div class="mb-3"><label>Phone</label><input type="text" id="empPhone" class="glass-input"></div><div class="mb-3"><label>Salary (USD)</label><input type="number" id="empSalary" class="glass-input"></div><div class="mb-3"><label>Role</label><select id="empRole" class="glass-input"><option>employee</option><option>admin</option><option>super admin</option></select></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal" style="color:#000 !important;">Cancel</button><button class="btn-glass-primary" onclick="addEmployee()">Add Employee</button></div></div></div></div>
 
     <script>
         // Mobile sidebar functions
