@@ -7,9 +7,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 
 let currentUser = null;
 let currentEmployee = null;
-let signaturePad = null;
-let canvas = null;
-let ctx = null;
 let calendar = null;
 
 // Chat variables
@@ -17,7 +14,36 @@ let currentChatType = 'group';
 let currentChatUserId = null;
 let chatUnsubscribe = null;
 
-// Initialize on page load
+// ========== OFFICE LOCATION ==========
+// Office address: 76VG+38 Monrovia, Liberia
+const OFFICE_LOCATION = {
+    lat: 6.3000,   // Approximate latitude for Monrovia
+    lng: -10.8000  // Approximate longitude for Monrovia
+};
+
+const ALLOWED_RADIUS_METERS = 100;
+let currentUserLocation = null;
+let locationVerified = false;
+
+// ========== UTILITY FUNCTIONS ==========
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c * 1000;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', async () => {
     updateDateTime();
     setInterval(updateDateTime, 1000);
@@ -43,9 +69,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const userRole = currentEmployee['role '] || currentEmployee.role || 'employee';
         const isAdmin = userRole === 'admin' || userRole === 'super admin';
         
-        console.log('Employee role:', userRole);
-        console.log('Is admin?', isAdmin);
-        
         const displayName = currentEmployee.nickname || currentEmployee.fullName;
         document.getElementById('userRole').innerHTML = `<strong>${currentEmployee.position || 'Employee'}</strong><br><small>${displayName}</small>`;
         
@@ -68,11 +91,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadPerformanceReviews();
         await loadAnnouncements();
         
-        initSignaturePad();
-        updateAttendanceButton();
-        
-        // Add chat attachment buttons to UI
+        updateAttendanceUI();
         addChatAttachmentButtons();
+        
+        // Auto-detect location on attendance section load
+        const attendanceObserver = new MutationObserver(() => {
+            const attendanceSection = document.getElementById('attendanceSection');
+            if (attendanceSection && attendanceSection.style.display !== 'none') {
+                getLocation();
+                attendanceObserver.disconnect();
+            }
+        });
+        attendanceObserver.observe(document.getElementById('attendanceSection'), { attributes: true, attributeFilter: ['style'] });
         
     } catch (error) {
         console.error('Error loading user:', error);
@@ -81,6 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+// ========== CHAT ATTACHMENT ==========
 function addChatAttachmentButtons() {
     const chatInputContainer = document.querySelector('.chat-input-container .d-flex');
     if (chatInputContainer && !document.getElementById('chatAttachmentBtn')) {
@@ -105,7 +136,7 @@ function addChatAttachmentButtons() {
     }
 }
 
-async function sendMediaMessage(type, customBlob = null) {
+async function sendMediaMessage(type) {
     let file = null;
     let inputElement = null;
     
@@ -119,7 +150,6 @@ async function sendMediaMessage(type, customBlob = null) {
     
     if (!file) return;
     
-    // Show uploading indicator
     Swal.fire({ title: 'Uploading...', text: 'Please wait', allowOutsideClick: false, didOpen: () => Swal.showLoading(), background: '#000' });
     
     try {
@@ -165,6 +195,7 @@ async function sendMediaMessage(type, customBlob = null) {
     }
 }
 
+// ========== LOGIN / AUTH ==========
 function showLoginModal() {
     const modalEl = document.getElementById('loginModal');
     const modal = new bootstrap.Modal(modalEl);
@@ -273,70 +304,111 @@ function updateDateTime() {
     if (dateElem) dateElem.textContent = now.toLocaleDateString();
 }
 
-function initSignaturePad() {
-    canvas = document.getElementById('signatureCanvas');
-    if (!canvas) return;
-    ctx = canvas.getContext('2d');
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    
-    let drawing = false;
-    canvas.addEventListener('mousedown', () => drawing = true);
-    canvas.addEventListener('mouseup', () => drawing = false);
-    canvas.addEventListener('mousemove', (e) => {
-        if (!drawing) return;
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        ctx.fillStyle = '#000';
-        ctx.fillRect(x, y, 2, 2);
-    });
-    
-    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); drawing = true; });
-    canvas.addEventListener('touchend', () => drawing = false);
-    canvas.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        if (!drawing) return;
-        const rect = canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        ctx.fillStyle = '#000';
-        ctx.fillRect(x, y, 2, 2);
-    });
-}
-
-window.clearSignature = function() {
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-};
-
+// ========== LOCATION VERIFICATION ==========
 window.getLocation = function() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                window.currentLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                };
-                const locationDisplay = document.getElementById('locationDisplay');
-                if (locationDisplay) {
-                    locationDisplay.value = `Lat: ${window.currentLocation.lat.toFixed(6)}, Lng: ${window.currentLocation.lng.toFixed(6)}`;
-                }
-                Swal.fire({ title: 'Success', text: 'Location captured successfully', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
-            },
-            (error) => { Swal.fire({ title: 'Error', text: 'Unable to get location: ' + error.message, icon: 'error', background: '#000', confirmButtonColor: '#fff' }); }
-        );
+    const locationStatus = document.getElementById('locationStatus');
+    const locationDisplay = document.getElementById('locationDisplay');
+    
+    if (!navigator.geolocation) {
+        locationStatus.className = 'location-status error';
+        locationStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Geolocation not supported';
+        Swal.fire({ 
+            title: 'Error', 
+            text: 'Geolocation is not supported by your browser.', 
+            icon: 'error', 
+            background: '#000',
+            confirmButtonColor: '#fff'
+        });
+        return;
     }
+
+    locationStatus.className = 'location-status unverified';
+    locationStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting your location...';
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
+            
+            currentUserLocation = { lat: userLat, lng: userLng };
+            
+            const distance = calculateDistance(
+                userLat, userLng,
+                OFFICE_LOCATION.lat, OFFICE_LOCATION.lng
+            );
+            
+            locationDisplay.value = `Lat: ${userLat.toFixed(6)}, Lng: ${userLng.toFixed(6)} | Distance: ${distance.toFixed(1)}m from office`;
+            
+            if (distance <= ALLOWED_RADIUS_METERS) {
+                locationVerified = true;
+                locationStatus.className = 'location-status verified';
+                locationStatus.innerHTML = `<i class="fas fa-check-circle"></i> ✅ At the office (${distance.toFixed(1)}m)`;
+            } else {
+                locationVerified = false;
+                locationStatus.className = 'location-status error';
+                locationStatus.innerHTML = `<i class="fas fa-times-circle"></i> ❌ ${distance.toFixed(1)}m from office. Must be within ${ALLOWED_RADIUS_METERS}m.`;
+            }
+            
+            updateAttendanceUI();
+        },
+        (error) => {
+            locationStatus.className = 'location-status error';
+            locationStatus.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Error: ${error.message}`;
+            Swal.fire({
+                title: 'Location Error',
+                text: 'Unable to get your location. Please enable GPS and try again.',
+                icon: 'error',
+                background: '#000',
+                confirmButtonColor: '#fff'
+            });
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
 };
 
+// ========== ATTENDANCE FUNCTIONS ==========
 window.checkIn = async function() {
-    if (!window.currentLocation) { Swal.fire({ title: 'Error', text: 'Please capture your location first', icon: 'error', background: '#000' }); return; }
-    
-    if (!canvas || !ctx) return;
-    const imageData = canvas.toDataURL();
-    
+    if (!locationVerified) {
+        Swal.fire({
+            title: 'Location Required',
+            text: 'Please verify your location first. Click "Get Location & Verify" to proceed.',
+            icon: 'warning',
+            background: '#000',
+            confirmButtonColor: '#fff'
+        });
+        return;
+    }
+
     try {
         const today = new Date().toISOString().split('T')[0];
+        
+        const q = query(collection(db, 'attendance'), 
+            where('employeeId', '==', currentEmployee.id), 
+            where('date', '==', today)
+        );
+        const snapshot = await getDocs(q);
+        
+        let existingRecord = null;
+        snapshot.forEach(doc => {
+            existingRecord = { id: doc.id, ...doc.data() };
+        });
+        
+        if (existingRecord && existingRecord.checkIn) {
+            Swal.fire({
+                title: 'Already Checked In',
+                text: 'You have already checked in today.',
+                icon: 'info',
+                background: '#000',
+                confirmButtonColor: '#fff'
+            });
+            return;
+        }
+
+        const distance = calculateDistance(
+            currentUserLocation.lat, currentUserLocation.lng,
+            OFFICE_LOCATION.lat, OFFICE_LOCATION.lng
+        );
+
         await addDoc(collection(db, 'attendance'), {
             employeeId: currentEmployee.id,
             employeeName: currentEmployee.fullName,
@@ -344,66 +416,109 @@ window.checkIn = async function() {
             employeePosition: currentEmployee.position,
             date: today,
             checkIn: Timestamp.now(),
-            checkInLocation: window.currentLocation,
-            signature: imageData,
-            notes: document.getElementById('attendanceNotes')?.value || '',
+            checkInLocation: currentUserLocation,
+            checkInVerified: true,
+            officeDistance: distance,
             status: 'present',
             createdAt: Timestamp.now()
         });
         
-        Swal.fire({ title: 'Success', text: 'Checked in successfully!', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
+        Swal.fire({
+            title: '✅ Checked In',
+            text: `Checked in at the office (${distance.toFixed(1)}m)`,
+            icon: 'success',
+            background: '#000',
+            confirmButtonColor: '#fff'
+        });
         
-        const checkInBtn = document.getElementById('checkInBtn');
-        const checkOutBtn = document.getElementById('checkOutBtn');
-        const statusDiv = document.getElementById('attendanceStatus');
-        
-        if (checkInBtn) checkInBtn.style.display = 'none';
-        if (checkOutBtn) checkOutBtn.style.display = 'block';
-        if (statusDiv) statusDiv.innerHTML = '<div class="alert alert-success">✅ Checked In</div>';
-        
+        updateAttendanceUI();
         await loadAttendanceHistory();
         await loadDashboardData();
+        
     } catch (error) {
-        Swal.fire({ title: 'Error', text: 'Check-in failed: ' + error.message, icon: 'error', background: '#000' });
+        console.error('Check-in error:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to check in: ' + error.message,
+            icon: 'error',
+            background: '#000',
+            confirmButtonColor: '#fff'
+        });
     }
 };
 
 window.checkOut = async function() {
+    if (!locationVerified) {
+        Swal.fire({
+            title: 'Location Required',
+            text: 'Please verify your location first.',
+            icon: 'warning',
+            background: '#000',
+            confirmButtonColor: '#fff'
+        });
+        return;
+    }
+
     try {
         const today = new Date().toISOString().split('T')[0];
-        const q = query(collection(db, 'attendance'), where('employeeId', '==', currentEmployee.id), where('date', '==', today));
+        const q = query(collection(db, 'attendance'), 
+            where('employeeId', '==', currentEmployee.id), 
+            where('date', '==', today)
+        );
         const snapshot = await getDocs(q);
         
         let attendanceId = null;
         snapshot.forEach(doc => { attendanceId = doc.id; });
         
-        if (attendanceId) {
-            await updateDoc(doc(db, 'attendance', attendanceId), {
-                checkOut: Timestamp.now(),
-                checkOutLocation: window.currentLocation || null,
-                updatedAt: Timestamp.now()
+        if (!attendanceId) {
+            Swal.fire({
+                title: 'Not Checked In',
+                text: 'You need to check in first before checking out.',
+                icon: 'warning',
+                background: '#000',
+                confirmButtonColor: '#fff'
             });
-            
-            Swal.fire({ title: 'Success', text: 'Checked out successfully!', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
-            
-            const checkOutBtn = document.getElementById('checkOutBtn');
-            const statusDiv = document.getElementById('attendanceStatus');
-            
-            if (checkOutBtn) checkOutBtn.style.display = 'none';
-            if (statusDiv) statusDiv.innerHTML = '<div class="alert alert-info">✅ Completed Today</div>';
-            
-            await loadAttendanceHistory();
-            await loadDashboardData();
+            return;
         }
+        
+        await updateDoc(doc(db, 'attendance', attendanceId), {
+            checkOut: Timestamp.now(),
+            checkOutLocation: currentUserLocation,
+            checkOutVerified: true,
+            updatedAt: Timestamp.now()
+        });
+        
+        Swal.fire({
+            title: '✅ Checked Out',
+            text: 'Have a great day!',
+            icon: 'success',
+            background: '#000',
+            confirmButtonColor: '#fff'
+        });
+        
+        updateAttendanceUI();
+        await loadAttendanceHistory();
+        await loadDashboardData();
+        
     } catch (error) {
-        Swal.fire({ title: 'Error', text: 'Check-out failed: ' + error.message, icon: 'error', background: '#000' });
+        console.error('Check-out error:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to check out: ' + error.message,
+            icon: 'error',
+            background: '#000',
+            confirmButtonColor: '#fff'
+        });
     }
 };
 
-async function updateAttendanceButton() {
+async function updateAttendanceUI() {
     try {
         const today = new Date().toISOString().split('T')[0];
-        const q = query(collection(db, 'attendance'), where('employeeId', '==', currentEmployee.id), where('date', '==', today));
+        const q = query(collection(db, 'attendance'), 
+            where('employeeId', '==', currentEmployee.id), 
+            where('date', '==', today)
+        );
         const snapshot = await getDocs(q);
         
         let hasCheckIn = false, hasCheckOut = false;
@@ -418,12 +533,12 @@ async function updateAttendanceButton() {
         const statusDiv = document.getElementById('attendanceStatus');
         
         if (!hasCheckIn) {
-            if (checkInBtn) checkInBtn.style.display = 'block';
+            if (checkInBtn) { checkInBtn.style.display = 'inline-block'; checkInBtn.disabled = !locationVerified; }
             if (checkOutBtn) checkOutBtn.style.display = 'none';
             if (statusDiv) statusDiv.innerHTML = '<div class="alert alert-warning">⏰ Not Checked In Yet</div>';
         } else if (hasCheckIn && !hasCheckOut) {
             if (checkInBtn) checkInBtn.style.display = 'none';
-            if (checkOutBtn) checkOutBtn.style.display = 'block';
+            if (checkOutBtn) { checkOutBtn.style.display = 'inline-block'; checkOutBtn.disabled = !locationVerified; }
             if (statusDiv) statusDiv.innerHTML = '<div class="alert alert-success">✅ Checked In</div>';
         } else {
             if (checkInBtn) checkInBtn.style.display = 'none';
@@ -431,11 +546,11 @@ async function updateAttendanceButton() {
             if (statusDiv) statusDiv.innerHTML = '<div class="alert alert-info">✅ Completed Today</div>';
         }
     } catch (error) {
-        console.error('Error checking attendance status:', error);
+        console.error('Error updating attendance UI:', error);
     }
 }
 
-// ========== DASHBOARD WITH CLICKABLE CARDS ==========
+// ========== DASHBOARD ==========
 async function loadDashboardData() {
     try {
         const today = new Date().toISOString().split('T')[0];
@@ -471,7 +586,7 @@ async function loadDashboardData() {
         const unreadAnnouncementsElem = document.getElementById('unreadAnnouncements');
         if (unreadAnnouncementsElem) unreadAnnouncementsElem.textContent = unreadCount;
         
-        // Recent activities - clickable
+        // Recent activities
         const activitiesQ = query(collection(db, 'attendance'), orderBy('createdAt', 'desc'), limit(10));
         const activitiesSnapshot = await getDocs(activitiesQ);
         const activitiesHtml = [];
@@ -491,7 +606,7 @@ async function loadDashboardData() {
         const recentActivitiesElem = document.getElementById('recentActivities');
         if (recentActivitiesElem) recentActivitiesElem.innerHTML = activitiesHtml.join('') || '<div class="text-center p-3 text-muted">No recent activities</div>';
         
-        // Upcoming appointments - clickable
+        // Upcoming appointments
         const upcomingQ = query(collection(db, 'appointments'), where('startTime', '>=', Timestamp.now()), orderBy('startTime'), limit(10));
         const upcomingSnapshot = await getDocs(upcomingQ);
         const upcomingHtml = [];
@@ -511,7 +626,7 @@ async function loadDashboardData() {
         const upcomingAppointmentsElem = document.getElementById('upcomingAppointments');
         if (upcomingAppointmentsElem) upcomingAppointmentsElem.innerHTML = upcomingHtml.join('') || '<div class="text-center p-3 text-muted">No upcoming appointments</div>';
         
-        // Recent Tasks - clickable cards
+        // Recent Tasks
         const recentTasksQ = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'), limit(10));
         const recentTasksSnapshot = await getDocs(recentTasksQ);
         const tasksHtml = [];
@@ -531,7 +646,7 @@ async function loadDashboardData() {
             `);
         });
         
-        // Recent Leave Requests - clickable cards
+        // Recent Leave Requests
         const leaveQ = query(collection(db, 'leave_requests'), orderBy('createdAt', 'desc'), limit(10));
         const leaveSnapshot = await getDocs(leaveQ);
         const leaveHtml = [];
@@ -550,7 +665,7 @@ async function loadDashboardData() {
             `);
         });
         
-        // Recent Expenses - clickable cards
+        // Recent Expenses
         const expensesQ = query(collection(db, 'expenses'), orderBy('createdAt', 'desc'), limit(10));
         const expensesSnapshot = await getDocs(expensesQ);
         const expensesHtml = [];
@@ -569,7 +684,6 @@ async function loadDashboardData() {
             `);
         });
         
-        // Update the dashboard with new sections
         const dashboardSection = document.getElementById('dashboardSection');
         if (dashboardSection) {
             let additionalRow = dashboardSection.querySelector('.additional-dashboard-row');
@@ -606,7 +720,7 @@ async function loadDashboardData() {
     }
 }
 
-// ===== DETAIL VIEW FUNCTIONS =====
+// ========== DETAIL VIEW FUNCTIONS ==========
 window.showTaskDetail = async function(taskId) {
     const taskDoc = await getDoc(doc(db, 'tasks', taskId));
     if (!taskDoc.exists()) return;
@@ -697,6 +811,8 @@ window.showAttendanceDetail = async function(attendanceId) {
     if (!attendanceDoc.exists()) return;
     const att = attendanceDoc.data();
     
+    const distance = att.officeDistance ? `${att.officeDistance.toFixed(1)}m` : 'N/A';
+    
     Swal.fire({
         title: `${att.employeeName}'s Attendance`,
         html: `
@@ -705,8 +821,8 @@ window.showAttendanceDetail = async function(attendanceId) {
                 <p><strong>Check In:</strong> ${att.checkIn?.toDate().toLocaleTimeString() || 'Not checked in'}</p>
                 <p><strong>Check Out:</strong> ${att.checkOut?.toDate().toLocaleTimeString() || 'Not checked out'}</p>
                 <p><strong>Status:</strong> <span class="badge bg-${att.status === 'present' ? 'success' : 'warning'}">${att.status}</span></p>
-                <p><strong>Location:</strong> ${att.checkInLocation ? `Lat: ${att.checkInLocation.lat}, Lng: ${att.checkInLocation.lng}` : 'Not captured'}</p>
-                <p><strong>Notes:</strong> ${att.notes || 'No notes'}</p>
+                <p><strong>Office Distance:</strong> ${distance}</p>
+                <p><strong>Verified:</strong> ${att.checkInVerified ? '✅ Yes' : '❌ No'}</p>
                 <p><strong>Employee:</strong> ${att.employeeName} (${att.employeePosition || 'Staff'})</p>
             </div>
         `,
@@ -765,10 +881,14 @@ window.showExpenseDetail = async function(expenseId) {
     });
 };
 
-// ===== LOAD FUNCTIONS =====
+// ========== LOAD FUNCTIONS ==========
 async function loadAttendanceHistory() {
     try {
-        const q = query(collection(db, 'attendance'), orderBy('date', 'desc'), limit(30));
+        const q = query(collection(db, 'attendance'), 
+            where('employeeId', '==', currentEmployee.id),
+            orderBy('date', 'desc'), 
+            limit(30)
+        );
         const snapshot = await getDocs(q);
         const tableBody = document.getElementById('attendanceHistoryTable');
         if (!tableBody) return;
@@ -782,14 +902,19 @@ async function loadAttendanceHistory() {
                 const checkOut = data.checkOut.toDate();
                 hours = ((checkOut - checkIn) / (1000 * 60 * 60)).toFixed(1);
             }
+            
+            const locationStr = data.checkInVerified ? 
+                `✓ Office (${data.officeDistance?.toFixed(0) || '?'}m)` : 
+                '❌ Not verified';
+            
             tableBody.innerHTML += `
                 <tr onclick="showAttendanceDetail('${doc.id}')" style="cursor: pointer;">
-                    <td>${data.employeeName || 'Employee'} <small class="text-muted d-block">${data.employeePosition || ''}</small></td>
                     <td>${data.date}</td>
                     <td>${data.checkIn?.toDate().toLocaleTimeString() || '-'}</td>
                     <td>${data.checkOut?.toDate().toLocaleTimeString() || '-'}</td>
                     <td>${hours}</td>
                     <td><span class="status-badge status-${data.status}">${data.status}</span></td>
+                    <td><small>${locationStr}</small></td>
                 </tr>
             `;
         });
@@ -856,9 +981,8 @@ async function loadTasks() {
         
         snapshot.forEach(doc => {
             const data = doc.data();
-            const priorityClass = `task-highlight-${data.priority?.toLowerCase() || 'low'}`;
             container.innerHTML += `
-                <div class="task-card ${priorityClass}" onclick="showTaskDetail('${doc.id}')" style="cursor: pointer;">
+                <div class="task-card" onclick="showTaskDetail('${doc.id}')" style="cursor: pointer;">
                     <div class="d-flex justify-content-between align-items-center">
                         <h6>${data.title}</h6>
                         <span class="status-badge status-${data.status}">${data.status}</span>
@@ -1060,7 +1184,7 @@ async function loadAnnouncements() {
     }
 }
 
-// ===== CREATE FUNCTIONS =====
+// ========== CREATE FUNCTIONS ==========
 window.showAddTaskModal = async function() {
     const employeesSnapshot = await getDocs(collection(db, 'employees'));
     const employees = [];
@@ -1620,13 +1744,7 @@ window.showEditProfileModal = function() {
     modal.show();
 };
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-// ===== ADMIN FUNCTIONS =====
+// ========== ADMIN FUNCTIONS ==========
 window.showAdminEmployees = function() {
     loadEmployeesTable();
     document.getElementById('adminContent').innerHTML = `
@@ -1899,7 +2017,7 @@ window.calculatePayroll = async function() {
     `;
 };
 
-// ===== SHOW SECTION =====
+// ========== SHOW SECTION ==========
 window.showSection = function(section) {
     const sections = ['dashboard', 'attendance', 'appointments', 'tasks', 'leave', 'expenses', 'documents', 'performance', 'announcements', 'chat', 'admin'];
     sections.forEach(s => {
@@ -1929,10 +2047,3 @@ window.logout = function() {
     localStorage.removeItem('currentUser');
     window.location.reload();
 };
-
-// Add SweetAlert2 to the page if not already there
-if (typeof Swal === 'undefined') {
-    const swalScript = document.createElement('script');
-    swalScript.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
-    document.head.appendChild(swalScript);
-}
