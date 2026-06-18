@@ -14,27 +14,90 @@ let currentChatType = 'group';
 let currentChatUserId = null;
 let chatUnsubscribe = null;
 
-// ========== OFFICE LOCATION ==========
+// ========== OFFICE POLYGON ==========
 // Office address: 76VG+38 Monrovia, Liberia
-const OFFICE_LOCATION = {
-    lat: 6.3000,   // Approximate latitude for Monrovia
-    lng: -10.8000  // Approximate longitude for Monrovia
-};
+// Polygon defining the office boundary
+const OFFICE_POLYGON = [
+    { lat: 6.292051086927494, lng: -10.774535536766054 },
+    { lat: 6.292845569769444, lng: -10.774213671684265 },
+    { lat: 6.292498983444156, lng: -10.773425102233888 },
+    { lat: 6.291763153248643, lng: -10.773800611495973 },
+    { lat: 6.292051086927494, lng: -10.774535536766054 } // Closing the polygon
+];
 
-const ALLOWED_RADIUS_METERS = 100;
 let currentUserLocation = null;
 let locationVerified = false;
 
 // ========== UTILITY FUNCTIONS ==========
+
+// Point-in-Polygon algorithm (Ray Casting Method)
+function isPointInPolygon(lat, lng, polygon) {
+    let inside = false;
+    const n = polygon.length;
+    
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+        const xi = polygon[i].lng, yi = polygon[i].lat;
+        const xj = polygon[j].lng, yj = polygon[j].lat;
+        
+        const intersect = ((yi > lat) !== (yj > lat)) &&
+            (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+        
+        if (intersect) inside = !inside;
+    }
+    
+    return inside;
+}
+
+// Calculate distance from a point to the polygon (approximate)
+function distanceToPolygon(lat, lng, polygon) {
+    // If point is inside, distance is 0
+    if (isPointInPolygon(lat, lng, polygon)) {
+        return 0;
+    }
+    
+    // Otherwise, find minimum distance to any polygon edge
+    let minDist = Infinity;
+    const n = polygon.length;
+    
+    for (let i = 0; i < n - 1; i++) {
+        const p1 = polygon[i];
+        const p2 = polygon[i + 1];
+        const dist = distanceToSegment(lat, lng, p1.lat, p1.lng, p2.lat, p2.lng);
+        if (dist < minDist) minDist = dist;
+    }
+    
+    return minDist;
+}
+
+// Distance from point to line segment
+function distanceToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lengthSquared = dx * dx + dy * dy;
+    
+    if (lengthSquared === 0) {
+        return calculateDistance(px, py, x1, y1);
+    }
+    
+    let t = ((px - x1) * dx + (py - y1) * dy) / lengthSquared;
+    t = Math.max(0, Math.min(1, t));
+    
+    const nearestX = x1 + t * dx;
+    const nearestY = y1 + t * dy;
+    
+    return calculateDistance(px, py, nearestX, nearestY);
+}
+
+// Calculate distance between two coordinates in meters
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371;
+    const R = 6371; // Earth's radius in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
               Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
               Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c * 1000;
+    return R * c * 1000; // Distance in meters
 }
 
 function escapeHtml(text) {
@@ -332,21 +395,22 @@ window.getLocation = function() {
             
             currentUserLocation = { lat: userLat, lng: userLng };
             
-            const distance = calculateDistance(
-                userLat, userLng,
-                OFFICE_LOCATION.lat, OFFICE_LOCATION.lng
-            );
+            // Check if user is inside the polygon
+            const insidePolygon = isPointInPolygon(userLat, userLng, OFFICE_POLYGON);
             
-            locationDisplay.value = `Lat: ${userLat.toFixed(6)}, Lng: ${userLng.toFixed(6)} | Distance: ${distance.toFixed(1)}m from office`;
+            // Calculate distance to polygon boundary
+            const distance = distanceToPolygon(userLat, userLng, OFFICE_POLYGON);
             
-            if (distance <= ALLOWED_RADIUS_METERS) {
+            locationDisplay.value = `Lat: ${userLat.toFixed(6)}, Lng: ${userLng.toFixed(6)} | Distance: ${distance.toFixed(1)}m from office boundary`;
+            
+            if (insidePolygon) {
                 locationVerified = true;
                 locationStatus.className = 'location-status verified';
-                locationStatus.innerHTML = `<i class="fas fa-check-circle"></i> ✅ At the office (${distance.toFixed(1)}m)`;
+                locationStatus.innerHTML = `<i class="fas fa-check-circle"></i> ✅ Inside office premises (${distance.toFixed(1)}m from boundary)`;
             } else {
                 locationVerified = false;
                 locationStatus.className = 'location-status error';
-                locationStatus.innerHTML = `<i class="fas fa-times-circle"></i> ❌ ${distance.toFixed(1)}m from office. Must be within ${ALLOWED_RADIUS_METERS}m.`;
+                locationStatus.innerHTML = `<i class="fas fa-times-circle"></i> ❌ ${distance.toFixed(1)}m from office boundary. You must be inside the office premises.`;
             }
             
             updateAttendanceUI();
@@ -404,9 +468,9 @@ window.checkIn = async function() {
             return;
         }
 
-        const distance = calculateDistance(
+        const distance = distanceToPolygon(
             currentUserLocation.lat, currentUserLocation.lng,
-            OFFICE_LOCATION.lat, OFFICE_LOCATION.lng
+            OFFICE_POLYGON
         );
 
         await addDoc(collection(db, 'attendance'), {
@@ -419,13 +483,14 @@ window.checkIn = async function() {
             checkInLocation: currentUserLocation,
             checkInVerified: true,
             officeDistance: distance,
+            insidePolygon: true,
             status: 'present',
             createdAt: Timestamp.now()
         });
         
         Swal.fire({
             title: '✅ Checked In',
-            text: `Checked in at the office (${distance.toFixed(1)}m)`,
+            text: `Checked in at the office (${distance.toFixed(1)}m from boundary)`,
             icon: 'success',
             background: '#000',
             confirmButtonColor: '#fff'
@@ -812,6 +877,7 @@ window.showAttendanceDetail = async function(attendanceId) {
     const att = attendanceDoc.data();
     
     const distance = att.officeDistance ? `${att.officeDistance.toFixed(1)}m` : 'N/A';
+    const inside = att.insidePolygon ? '✅ Yes' : '❌ No';
     
     Swal.fire({
         title: `${att.employeeName}'s Attendance`,
@@ -821,7 +887,8 @@ window.showAttendanceDetail = async function(attendanceId) {
                 <p><strong>Check In:</strong> ${att.checkIn?.toDate().toLocaleTimeString() || 'Not checked in'}</p>
                 <p><strong>Check Out:</strong> ${att.checkOut?.toDate().toLocaleTimeString() || 'Not checked out'}</p>
                 <p><strong>Status:</strong> <span class="badge bg-${att.status === 'present' ? 'success' : 'warning'}">${att.status}</span></p>
-                <p><strong>Office Distance:</strong> ${distance}</p>
+                <p><strong>Inside Office:</strong> ${inside}</p>
+                <p><strong>Distance from Boundary:</strong> ${distance}</p>
                 <p><strong>Verified:</strong> ${att.checkInVerified ? '✅ Yes' : '❌ No'}</p>
                 <p><strong>Employee:</strong> ${att.employeeName} (${att.employeePosition || 'Staff'})</p>
             </div>
@@ -903,9 +970,9 @@ async function loadAttendanceHistory() {
                 hours = ((checkOut - checkIn) / (1000 * 60 * 60)).toFixed(1);
             }
             
-            const locationStr = data.checkInVerified ? 
-                `✓ Office (${data.officeDistance?.toFixed(0) || '?'}m)` : 
-                '❌ Not verified';
+            const locationStr = data.insidePolygon ? 
+                `✅ Inside (${data.officeDistance?.toFixed(0) || '?'}m)` : 
+                '❌ Outside';
             
             tableBody.innerHTML += `
                 <tr onclick="showAttendanceDetail('${doc.id}')" style="cursor: pointer;">
