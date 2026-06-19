@@ -100,8 +100,13 @@ function formatTime(seconds) {
     }
 }
 
-function formatCurrency(amount) {
-    return '$' + parseFloat(amount).toFixed(2);
+function formatCurrency(amount, currency = 'USD') {
+    const symbol = currency === 'LRD' ? 'L$' : '$';
+    return symbol + parseFloat(amount).toFixed(2);
+}
+
+function getCurrencySymbol(currency) {
+    return currency === 'LRD' ? 'L$' : '$';
 }
 
 function getDateRange(type) {
@@ -860,12 +865,13 @@ async function loadDashboardData() {
         const expensesHtml = [];
         expensesSnapshot.forEach(doc => {
             const data = doc.data();
+            const currency = data.currency || 'USD';
             expensesHtml.push(`
                 <div class="expense-card-mini glass-card-hover" onclick="showExpenseDetail('${doc.id}')" style="cursor: pointer;">
                     <i class="fas fa-receipt"></i>
                     <div class="flex-grow-1">
                         <strong>${data.employeeName}</strong> - ${data.category}
-                        <small class="d-block text-muted">${formatCurrency(data.amount)} - ${data.date}</small>
+                        <small class="d-block text-muted">${formatCurrency(data.amount, currency)} - ${data.date}</small>
                     </div>
                     <span class="status-badge status-${data.status}">${data.status || 'pending'}</span>
                     <i class="fas fa-chevron-right"></i>
@@ -1049,13 +1055,15 @@ window.showExpenseDetail = async function(expenseId) {
     const expenseDoc = await getDoc(doc(db, 'expenses', expenseId));
     if (!expenseDoc.exists()) return;
     const expense = expenseDoc.data();
+    const currency = expense.currency || 'USD';
     
     Swal.fire({
         title: `${expense.employeeName}'s Expense`,
         html: `
             <div class="text-start">
                 <p><strong>Category:</strong> ${expense.category}</p>
-                <p><strong>Amount:</strong> ${formatCurrency(expense.amount)}</p>
+                <p><strong>Amount:</strong> ${formatCurrency(expense.amount, currency)}</p>
+                <p><strong>Currency:</strong> ${currency}</p>
                 <p><strong>Date:</strong> ${expense.date}</p>
                 <p><strong>Description:</strong><br>${expense.description || 'No description'}</p>
                 <p><strong>Status:</strong> <span class="badge bg-${expense.status === 'approved' ? 'success' : expense.status === 'rejected' ? 'danger' : 'warning'}">${expense.status}</span></p>
@@ -1234,7 +1242,7 @@ async function loadLeaveRequests() {
     }
 }
 
-// ========== EXPENSES (ENHANCED WITH REPORTS) ==========
+// ========== EXPENSES (ENHANCED WITH REPORTS & CURRENCY) ==========
 async function loadExpenses() {
     try {
         const q = query(collection(db, 'expenses'), orderBy('createdAt', 'desc'));
@@ -1289,6 +1297,8 @@ async function loadExpenses() {
             const data = doc.data();
             const isPending = data.status === 'pending';
             const isOwnExpense = data.employeeId === currentEmployee.id;
+            const currency = data.currency || 'USD';
+            const currencyClass = currency === 'LRD' ? 'currency-lrd' : 'currency-usd';
             
             const canEdit = isOwnExpense && isPending;
             const canDelete = isOwnExpense && isPending;
@@ -1299,7 +1309,10 @@ async function loadExpenses() {
                     <td>${data.employeeName} <small class="text-muted d-block">${data.employeePosition || ''}</small></td>
                     <td>${data.date}</td>
                     <td>${data.category}</td>
-                    <td><strong>${formatCurrency(data.amount)}</strong></td>
+                    <td>
+                        <strong>${formatCurrency(data.amount, currency)}</strong>
+                        <span class="currency-badge ${currencyClass}">${currency}</span>
+                    </td>
                     <td><span class="status-badge status-${data.status}">${data.status}</span></td>
                     <td>
                         <button class="btn-glass-sm me-1" onclick="showExpenseDetail('${doc.id}')" title="View Details">
@@ -1338,22 +1351,33 @@ window.generateExpenseReport = async function(type) {
             return;
         }
         
-        let totalAmount = 0;
-        let pendingTotal = 0;
-        let approvedTotal = 0;
+        let totalUSD = 0;
+        let totalLRD = 0;
+        let pendingUSD = 0;
+        let pendingLRD = 0;
+        let approvedUSD = 0;
+        let approvedLRD = 0;
         const categoryTotals = {};
         const employeeTotals = {};
         
         snapshot.forEach(doc => {
             const data = doc.data();
             const amount = parseFloat(data.amount) || 0;
-            totalAmount += amount;
+            const currency = data.currency || 'USD';
             
-            if (data.status === 'pending') pendingTotal += amount;
-            if (data.status === 'approved') approvedTotal += amount;
+            if (currency === 'USD') {
+                totalUSD += amount;
+                if (data.status === 'pending') pendingUSD += amount;
+                if (data.status === 'approved') approvedUSD += amount;
+            } else {
+                totalLRD += amount;
+                if (data.status === 'pending') pendingLRD += amount;
+                if (data.status === 'approved') approvedLRD += amount;
+            }
             
-            if (!categoryTotals[data.category]) categoryTotals[data.category] = 0;
-            categoryTotals[data.category] += amount;
+            const key = `${data.category} (${currency})`;
+            if (!categoryTotals[key]) categoryTotals[key] = 0;
+            categoryTotals[key] += amount;
             
             if (!employeeTotals[data.employeeName]) employeeTotals[data.employeeName] = 0;
             employeeTotals[data.employeeName] += amount;
@@ -1361,12 +1385,15 @@ window.generateExpenseReport = async function(type) {
         
         // Build category breakdown
         let categoryHtml = '';
-        for (const [category, amount] of Object.entries(categoryTotals)) {
-            const percentage = ((amount / totalAmount) * 100).toFixed(1);
+        const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+        const grandTotal = totalUSD + totalLRD;
+        for (const [category, amount] of sortedCategories) {
+            const percentage = ((amount / grandTotal) * 100).toFixed(1);
+            const currency = category.includes('LRD') ? 'LRD' : 'USD';
             categoryHtml += `
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <span>${category}</span>
-                    <span><strong>${formatCurrency(amount)}</strong> (${percentage}%)</span>
+                    <span><strong>${formatCurrency(amount, currency)}</strong> (${percentage}%)</span>
                 </div>
                 <div class="progress mb-2" style="height: 6px; background: rgba(255,255,255,0.1);">
                     <div class="progress-bar" style="width: ${percentage}%; background: linear-gradient(90deg, #002868, #BF0A30);"></div>
@@ -1377,11 +1404,11 @@ window.generateExpenseReport = async function(type) {
         // Build employee breakdown
         let employeeHtml = '';
         for (const [name, amount] of Object.entries(employeeTotals)) {
-            const percentage = ((amount / totalAmount) * 100).toFixed(1);
+            const percentage = ((amount / grandTotal) * 100).toFixed(1);
             employeeHtml += `
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <span>${name}</span>
-                    <span><strong>${formatCurrency(amount)}</strong> (${percentage}%)</span>
+                    <span><strong>${formatCurrency(amount, 'USD')}</strong> (${percentage}%)</span>
                 </div>
             `;
         }
@@ -1405,10 +1432,19 @@ window.generateExpenseReport = async function(type) {
                 <div class="text-start">
                     <div class="mb-3 p-2" style="background: rgba(0,40,104,0.1); border-radius: 8px;">
                         <p class="mb-1"><strong>📅 Period:</strong> ${dateLabels[type] || startDate + ' to ' + endDate}</p>
-                        <p class="mb-1"><strong>📊 Total Expenses:</strong> <span style="font-size: 1.4rem; font-weight: 700;">${formatCurrency(totalAmount)}</span></p>
+                        <div class="row">
+                            <div class="col-6">
+                                <p class="mb-1"><strong>🇺🇸 USD Total:</strong> <span style="font-size: 1.2rem; font-weight: 700; color: #4caf50;">${formatCurrency(totalUSD, 'USD')}</span></p>
+                                <p class="mb-1"><small>Pending: ${formatCurrency(pendingUSD, 'USD')}</small></p>
+                                <p class="mb-1"><small>Approved: ${formatCurrency(approvedUSD, 'USD')}</small></p>
+                            </div>
+                            <div class="col-6">
+                                <p class="mb-1"><strong>🇱🇷 LRD Total:</strong> <span style="font-size: 1.2rem; font-weight: 700; color: #ff9800;">${formatCurrency(totalLRD, 'LRD')}</span></p>
+                                <p class="mb-1"><small>Pending: ${formatCurrency(pendingLRD, 'LRD')}</small></p>
+                                <p class="mb-1"><small>Approved: ${formatCurrency(approvedLRD, 'LRD')}</small></p>
+                            </div>
+                        </div>
                         <div class="d-flex gap-3 mt-2">
-                            <span><span class="badge bg-warning">⏳ Pending:</span> ${formatCurrency(pendingTotal)}</span>
-                            <span><span class="badge bg-success">✅ Approved:</span> ${formatCurrency(approvedTotal)}</span>
                             <span><span class="badge bg-secondary">📝 Total Entries:</span> ${snapshot.size}</span>
                         </div>
                     </div>
@@ -1452,16 +1488,21 @@ window.generateExpenseReport = async function(type) {
 // ========== EXPORT EXPENSE REPORT AS CSV ==========
 function exportExpenseReportCSV(snapshot, type, startDate, endDate) {
     try {
-        let csv = 'Date,Employee,Category,Amount,Status,Description\n';
+        let csv = 'Date,Employee,Category,Currency,Amount,Status,Description\n';
+        let totalUSD = 0;
+        let totalLRD = 0;
+        
         snapshot.forEach(doc => {
             const data = doc.data();
-            csv += `${data.date},${data.employeeName},${data.category},${data.amount},${data.status},"${(data.description || '').replace(/"/g, '""')}"\n`;
+            const currency = data.currency || 'USD';
+            csv += `${data.date},${data.employeeName},${data.category},${currency},${data.amount},${data.status},"${(data.description || '').replace(/"/g, '""')}"\n`;
+            if (currency === 'USD') totalUSD += parseFloat(data.amount) || 0;
+            else totalLRD += parseFloat(data.amount) || 0;
         });
         
-        // Add summary row
-        let totalAmount = 0;
-        snapshot.forEach(doc => { totalAmount += parseFloat(doc.data().amount) || 0; });
-        csv += `\nTotal Expenses,,,${totalAmount.toFixed(2)},,`;
+        csv += `\nTotal USD,,,USD,${totalUSD.toFixed(2)},,\n`;
+        csv += `Total LRD,,,LRD,${totalLRD.toFixed(2)},,\n`;
+        csv += `Grand Total,,,USD,${(totalUSD + totalLRD).toFixed(2)},,\n`;
         
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
@@ -1502,30 +1543,44 @@ window.showExpenseSummary = async function() {
             return;
         }
         
-        let total = 0;
-        let pending = 0;
-        let approved = 0;
-        let rejected = 0;
+        let totalUSD = 0;
+        let totalLRD = 0;
+        let pendingUSD = 0;
+        let pendingLRD = 0;
+        let approvedUSD = 0;
+        let approvedLRD = 0;
+        let rejectedUSD = 0;
+        let rejectedLRD = 0;
         const categoryData = {};
         
         snapshot.forEach(doc => {
             const data = doc.data();
             const amount = parseFloat(data.amount) || 0;
-            total += amount;
+            const currency = data.currency || 'USD';
             
-            if (data.status === 'pending') pending += amount;
-            if (data.status === 'approved') approved += amount;
-            if (data.status === 'rejected') rejected += amount;
+            if (currency === 'USD') {
+                totalUSD += amount;
+                if (data.status === 'pending') pendingUSD += amount;
+                if (data.status === 'approved') approvedUSD += amount;
+                if (data.status === 'rejected') rejectedUSD += amount;
+            } else {
+                totalLRD += amount;
+                if (data.status === 'pending') pendingLRD += amount;
+                if (data.status === 'approved') approvedLRD += amount;
+                if (data.status === 'rejected') rejectedLRD += amount;
+            }
             
-            if (!categoryData[data.category]) categoryData[data.category] = 0;
-            categoryData[data.category] += amount;
+            const key = `${data.category} (${currency})`;
+            if (!categoryData[key]) categoryData[key] = 0;
+            categoryData[key] += amount;
         });
         
         // Sort categories by amount
         const sortedCategories = Object.entries(categoryData).sort((a, b) => b[1] - a[1]);
-        let topCategories = sortedCategories.slice(0, 5).map(([cat, amt]) => 
-            `<li class="mb-1">${cat}: <strong>${formatCurrency(amt)}</strong></li>`
-        ).join('');
+        let topCategories = sortedCategories.slice(0, 5).map(([cat, amt]) => {
+            const currency = cat.includes('LRD') ? 'LRD' : 'USD';
+            return `<li class="mb-1">${cat}: <strong>${formatCurrency(amt, currency)}</strong></li>`;
+        }).join('');
         
         Swal.fire({
             title: '📊 Expense Summary',
@@ -1533,29 +1588,35 @@ window.showExpenseSummary = async function() {
                 <div class="text-start">
                     <div class="row g-2 mb-3">
                         <div class="col-6">
-                            <div class="p-2" style="background: rgba(0,40,104,0.1); border-radius: 8px; text-align: center;">
-                                <div style="font-size: 1.8rem; font-weight: 700; color: #4caf50;">${formatCurrency(total)}</div>
-                                <small>Total All Expenses</small>
+                            <div class="p-2" style="background: rgba(76,175,80,0.1); border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.6rem; font-weight: 700; color: #4caf50;">${formatCurrency(totalUSD, 'USD')}</div>
+                                <small>🇺🇸 USD Total</small>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="p-2" style="background: rgba(255,152,0,0.1); border-radius: 8px; text-align: center;">
-                                <div style="font-size: 1.8rem; font-weight: 700; color: #ff9800;">${formatCurrency(pending)}</div>
-                                <small>Pending Approval</small>
+                                <div style="font-size: 1.6rem; font-weight: 700; color: #ff9800;">${formatCurrency(totalLRD, 'LRD')}</div>
+                                <small>🇱🇷 LRD Total</small>
                             </div>
                         </div>
                     </div>
                     <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <div class="p-2" style="background: rgba(76,175,80,0.1); border-radius: 8px; text-align: center;">
-                                <div style="font-size: 1.4rem; font-weight: 700; color: #4caf50;">${formatCurrency(approved)}</div>
-                                <small>Approved</small>
+                        <div class="col-4">
+                            <div class="p-2" style="background: rgba(255,152,0,0.1); border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1rem; font-weight: 700; color: #ff9800;">${formatCurrency(pendingUSD + pendingLRD, 'USD')}</div>
+                                <small>⏳ Pending</small>
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
+                            <div class="p-2" style="background: rgba(76,175,80,0.1); border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1rem; font-weight: 700; color: #4caf50;">${formatCurrency(approvedUSD + approvedLRD, 'USD')}</div>
+                                <small>✅ Approved</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
                             <div class="p-2" style="background: rgba(244,67,54,0.1); border-radius: 8px; text-align: center;">
-                                <div style="font-size: 1.4rem; font-weight: 700; color: #f44336;">${formatCurrency(rejected)}</div>
-                                <small>Rejected</small>
+                                <div style="font-size: 1rem; font-weight: 700; color: #f44336;">${formatCurrency(rejectedUSD + rejectedLRD, 'USD')}</div>
+                                <small>❌ Rejected</small>
                             </div>
                         </div>
                     </div>
@@ -1707,11 +1768,20 @@ window.showEditExpenseModal = async function(expenseId) {
                             <option value="Office Supplies" ${expense.category === 'Office Supplies' ? 'selected' : ''}>Office Supplies</option>
                             <option value="Software/Tools" ${expense.category === 'Software/Tools' ? 'selected' : ''}>Software/Tools</option>
                             <option value="Training" ${expense.category === 'Training' ? 'selected' : ''}>Training</option>
+                            <option value="Utilities" ${expense.category === 'Utilities' ? 'selected' : ''}>Utilities</option>
+                            <option value="Rent" ${expense.category === 'Rent' ? 'selected' : ''}>Rent</option>
                             <option value="Other" ${expense.category === 'Other' ? 'selected' : ''}>Other</option>
                         </select>
                     </div>
                     <div class="mb-2">
-                        <label style="color: #666; font-weight: 600;">Amount (USD)</label>
+                        <label style="color: #666; font-weight: 600;">Currency</label>
+                        <select id="editExpenseCurrency" class="swal2-input">
+                            <option value="USD" ${expense.currency === 'USD' ? 'selected' : ''}>🇺🇸 USD - US Dollar</option>
+                            <option value="LRD" ${expense.currency === 'LRD' ? 'selected' : ''}>🇱🇷 LRD - Liberian Dollar</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label style="color: #666; font-weight: 600;">Amount</label>
                         <input type="number" id="editExpenseAmount" class="swal2-input" step="0.01" value="${expense.amount}">
                     </div>
                     <div class="mb-2">
@@ -1735,6 +1805,7 @@ window.showEditExpenseModal = async function(expenseId) {
             cancelButtonColor: '#d33',
             preConfirm: async () => {
                 const category = Swal.getPopup().querySelector('#editExpenseCategory').value;
+                const currency = Swal.getPopup().querySelector('#editExpenseCurrency').value;
                 const amount = parseFloat(Swal.getPopup().querySelector('#editExpenseAmount').value);
                 const date = Swal.getPopup().querySelector('#editExpenseDate').value;
                 const description = Swal.getPopup().querySelector('#editExpenseDescription').value;
@@ -1758,6 +1829,7 @@ window.showEditExpenseModal = async function(expenseId) {
                 
                 await updateDoc(doc(db, 'expenses', expenseId), {
                     category: category,
+                    currency: currency,
                     amount: amount,
                     date: date,
                     description: description,
@@ -2067,6 +2139,7 @@ window.showExpenseModal = function() {
 
 window.submitExpense = async function() {
     const category = document.getElementById('expenseCategory').value;
+    const currency = document.getElementById('expenseCurrency').value;
     const amount = parseFloat(document.getElementById('expenseAmount').value);
     const date = document.getElementById('expenseDate').value;
     const description = document.getElementById('expenseDescription').value;
@@ -2083,6 +2156,7 @@ window.submitExpense = async function() {
     
     await addDoc(collection(db, 'expenses'), {
         category: category,
+        currency: currency,
         amount: amount,
         date: date,
         description: description,
