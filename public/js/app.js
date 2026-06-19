@@ -5,6 +5,43 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
+// ========== THEME TOGGLE SUPPORT ==========
+// This ensures the theme persists across page reloads and works with the toggle button
+(function initTheme() {
+    const saved = localStorage.getItem('hrTheme');
+    if (saved === 'light') {
+        document.body.classList.add('light-mode');
+        const icon = document.getElementById('themeIcon');
+        const label = document.getElementById('themeLabel');
+        if (icon) icon.className = 'fas fa-sun';
+        if (label) label.textContent = 'Light';
+    } else {
+        document.body.classList.remove('light-mode');
+        const icon = document.getElementById('themeIcon');
+        const label = document.getElementById('themeLabel');
+        if (icon) icon.className = 'fas fa-moon';
+        if (label) label.textContent = 'Dark';
+    }
+})();
+
+// Expose toggleTheme to global scope for the HTML onclick
+window.toggleTheme = function() {
+    const body = document.body;
+    const icon = document.getElementById('themeIcon');
+    const label = document.getElementById('themeLabel');
+    if (body.classList.contains('light-mode')) {
+        body.classList.remove('light-mode');
+        if (icon) icon.className = 'fas fa-moon';
+        if (label) label.textContent = 'Dark';
+        localStorage.setItem('hrTheme', 'dark');
+    } else {
+        body.classList.add('light-mode');
+        if (icon) icon.className = 'fas fa-sun';
+        if (label) label.textContent = 'Light';
+        localStorage.setItem('hrTheme', 'light');
+    }
+};
+
 let currentUser = null;
 let currentEmployee = null;
 let calendar = null;
@@ -265,7 +302,7 @@ async function sendMediaMessage(type) {
     
     if (!file) return;
     
-    Swal.fire({ title: 'Uploading...', text: 'Please wait', allowOutsideClick: false, didOpen: () => Swal.showLoading(), background: '#000' });
+    Swal.fire({ title: 'Uploading...', text: 'Please wait', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
     try {
         const timestamp = Date.now();
@@ -306,7 +343,7 @@ async function sendMediaMessage(type) {
         
     } catch (error) {
         Swal.close();
-        Swal.fire({ title: 'Error', text: 'Failed to upload file', icon: 'error', background: '#000' });
+        Swal.fire({ title: 'Error', text: 'Failed to upload file', icon: 'error' });
     }
 }
 
@@ -430,8 +467,7 @@ window.getLocation = function() {
         Swal.fire({ 
             title: 'Error', 
             text: 'Geolocation is not supported by your browser.', 
-            icon: 'error', 
-            background: '#000',
+            icon: 'error',
             confirmButtonColor: '#fff'
         });
         return;
@@ -473,7 +509,6 @@ window.getLocation = function() {
                 title: 'Location Error',
                 text: 'Unable to get your location. Please enable GPS and try again.',
                 icon: 'error',
-                background: '#000',
                 confirmButtonColor: '#fff'
             });
         },
@@ -488,7 +523,6 @@ window.checkIn = async function() {
             title: 'Location Required',
             text: 'Please verify your location first. Click "Get Location & Verify" to proceed.',
             icon: 'warning',
-            background: '#000',
             confirmButtonColor: '#fff'
         });
         return;
@@ -513,7 +547,6 @@ window.checkIn = async function() {
                 title: 'Already Checked In',
                 text: 'You have already checked in today.',
                 icon: 'info',
-                background: '#000',
                 confirmButtonColor: '#fff'
             });
             return;
@@ -542,7 +575,6 @@ window.checkIn = async function() {
             title: '✅ Checked In',
             text: `Checked in (${distance.toFixed(1)}m from office)`,
             icon: 'success',
-            background: '#000',
             confirmButtonColor: '#fff'
         });
         
@@ -556,7 +588,6 @@ window.checkIn = async function() {
             title: 'Error',
             text: 'Failed to check in: ' + error.message,
             icon: 'error',
-            background: '#000',
             confirmButtonColor: '#fff'
         });
     }
@@ -568,7 +599,6 @@ window.checkOut = async function() {
             title: 'Location Required',
             text: 'Please verify your location first.',
             icon: 'warning',
-            background: '#000',
             confirmButtonColor: '#fff'
         });
         return;
@@ -590,7 +620,6 @@ window.checkOut = async function() {
                 title: 'Not Checked In',
                 text: 'You need to check in first before checking out.',
                 icon: 'warning',
-                background: '#000',
                 confirmButtonColor: '#fff'
             });
             return;
@@ -607,7 +636,6 @@ window.checkOut = async function() {
             title: '✅ Checked Out',
             text: 'Have a great day!',
             icon: 'success',
-            background: '#000',
             confirmButtonColor: '#fff'
         });
         
@@ -621,7 +649,6 @@ window.checkOut = async function() {
             title: 'Error',
             text: 'Failed to check out: ' + error.message,
             icon: 'error',
-            background: '#000',
             confirmButtonColor: '#fff'
         });
     }
@@ -875,7 +902,6 @@ window.showTaskDetail = async function(taskId) {
         `,
         icon: 'info',
         confirmButtonColor: '#fff',
-        background: '#000',
         backdrop: 'rgba(0,0,0,0.9)',
         showDenyButton: task.status !== 'completed',
         denyButtonText: 'Mark Complete',
@@ -907,7 +933,6 @@ window.showAppointmentDetail = async function(appointmentId) {
         `,
         icon: 'info',
         confirmButtonColor: '#fff',
-        background: '#000',
         backdrop: 'rgba(0,0,0,0.9)'
     });
 };
@@ -929,7 +954,6 @@ window.showAnnouncementDetail = async function(announcementId) {
         `,
         icon: 'info',
         confirmButtonColor: '#fff',
-        background: '#000',
         backdrop: 'rgba(0,0,0,0.8)'
     });
     
@@ -966,7 +990,6 @@ window.showAttendanceDetail = async function(attendanceId) {
         `,
         icon: 'info',
         confirmButtonColor: '#fff',
-        background: '#000',
         backdrop: 'rgba(0,0,0,0.8)'
     });
 };
@@ -990,7 +1013,6 @@ window.showLeaveDetail = async function(leaveId) {
         `,
         icon: 'info',
         confirmButtonColor: '#fff',
-        background: '#000',
         backdrop: 'rgba(0,0,0,0.9)'
     });
 };
@@ -1014,7 +1036,6 @@ window.showExpenseDetail = async function(expenseId) {
         `,
         icon: 'info',
         confirmButtonColor: '#fff',
-        background: '#000',
         backdrop: 'rgba(0,0,0,0.9)'
     });
 };
@@ -1065,7 +1086,7 @@ async function loadAttendanceHistory() {
     }
 }
 
-// ========== REST OF THE FUNCTIONS (unchanged from original) ==========
+// ========== REST OF THE FUNCTIONS ==========
 async function loadAppointments() {
     try {
         const q = query(collection(db, 'appointments'), orderBy('startTime', 'desc'));
@@ -1357,7 +1378,6 @@ window.showAddTaskModal = async function() {
         `,
         confirmButtonText: 'Create Task',
         showCancelButton: true,
-        background: '#000',
         confirmButtonColor: '#fff',
         preConfirm: async () => {
             const title = Swal.getPopup().querySelector('#taskTitle').value;
@@ -1394,7 +1414,7 @@ window.showAddTaskModal = async function() {
     }).then(() => {
         loadTasks();
         loadDashboardData();
-        Swal.fire({ title: 'Success', text: 'Task created successfully', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
+        Swal.fire({ title: 'Success', text: 'Task created successfully', icon: 'success', confirmButtonColor: '#fff' });
     });
 };
 
@@ -1413,7 +1433,7 @@ window.createAppointment = async function() {
     const location = document.getElementById('appointmentLocation').value;
     const description = document.getElementById('appointmentDescription').value;
     
-    if (!title || !dateTime) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: '#000', confirmButtonColor: '#fff' }); return; }
+    if (!title || !dateTime) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', confirmButtonColor: '#fff' }); return; }
     
     await addDoc(collection(db, 'appointments'), {
         title: title,
@@ -1432,7 +1452,7 @@ window.createAppointment = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('appointmentModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Appointment scheduled successfully', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
+    Swal.fire({ title: 'Success', text: 'Appointment scheduled successfully', icon: 'success', confirmButtonColor: '#fff' });
     await loadAppointments();
     await loadDashboardData();
 };
@@ -1452,7 +1472,7 @@ window.submitLeaveRequest = async function() {
     const endDate = document.getElementById('leaveEnd').value;
     const reason = document.getElementById('leaveReason').value;
     
-    if (!startDate || !endDate) { Swal.fire({ title: 'Error', text: 'Please select dates', icon: 'error', background: '#000', confirmButtonColor: '#fff' }); return; }
+    if (!startDate || !endDate) { Swal.fire({ title: 'Error', text: 'Please select dates', icon: 'error', confirmButtonColor: '#fff' }); return; }
     
     const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
     
@@ -1470,7 +1490,7 @@ window.submitLeaveRequest = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('leaveModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Leave request submitted successfully', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
+    Swal.fire({ title: 'Success', text: 'Leave request submitted successfully', icon: 'success', confirmButtonColor: '#fff' });
     await loadLeaveRequests();
 };
 
@@ -1488,7 +1508,7 @@ window.submitExpense = async function() {
     const description = document.getElementById('expenseDescription').value;
     const receiptFile = document.getElementById('receiptImage').files[0];
     
-    if (!category || !amount || !date) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: '#000', confirmButtonColor: '#fff' }); return; }
+    if (!category || !amount || !date) { Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', confirmButtonColor: '#fff' }); return; }
     
     let receiptUrl = '';
     if (receiptFile) {
@@ -1511,13 +1531,13 @@ window.submitExpense = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Expense submitted successfully', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
+    Swal.fire({ title: 'Success', text: 'Expense submitted successfully', icon: 'success', confirmButtonColor: '#fff' });
     await loadExpenses();
 };
 
 window.updateTaskStatus = async function(taskId, status) {
     await updateDoc(doc(db, 'tasks', taskId), { status: status, completedAt: status === 'completed' ? Timestamp.now() : null });
-    Swal.fire({ title: 'Success', text: 'Task updated', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
+    Swal.fire({ title: 'Success', text: 'Task updated', icon: 'success', confirmButtonColor: '#fff' });
     await loadTasks();
     await loadDashboardData();
 };
@@ -1534,7 +1554,6 @@ window.showAddDocumentModal = function() {
         `,
         confirmButtonText: 'Upload',
         showCancelButton: true,
-        background: '#000',
         confirmButtonColor: '#fff',
         preConfirm: async () => {
             const title = Swal.getPopup().querySelector('#docTitle').value;
@@ -1566,7 +1585,6 @@ window.showAddAnnouncementModal = function() {
         `,
         confirmButtonText: 'Post',
         showCancelButton: true,
-        background: '#000',
         confirmButtonColor: '#fff',
         preConfirm: async () => {
             const title = Swal.getPopup().querySelector('#announceTitle').value;
@@ -1595,7 +1613,6 @@ window.showAddReviewModal = function() {
             return options;
         },
         showCancelButton: true,
-        background: '#000',
         confirmButtonColor: '#fff',
         preConfirm: (employeeId) => {
             if (!employeeId) { Swal.showValidationMessage('Please select an employee'); return false; }
@@ -1616,7 +1633,6 @@ function showReviewForm(employeeId) {
         `,
         confirmButtonText: 'Submit Review',
         showCancelButton: true,
-        background: '#000',
         confirmButtonColor: '#fff',
         preConfirm: async () => {
             const rating = parseInt(Swal.getPopup().querySelector('#reviewRating').value);
@@ -1868,7 +1884,7 @@ window.updateProfile = async function() {
     localStorage.setItem('currentUser', JSON.stringify(currentEmployee));
     
     bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Profile updated!', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
+    Swal.fire({ title: 'Success', text: 'Profile updated!', icon: 'success', confirmButtonColor: '#fff' });
     
     const displayName = currentEmployee.nickname || currentEmployee.fullName;
     document.getElementById('userRole').innerHTML = `<strong>${currentEmployee.position || 'Employee'}</strong><br><small>${displayName}</small>`;
@@ -1951,7 +1967,7 @@ window.postAdminAnnouncement = async function() {
     const message = document.getElementById('announceMessage').value;
     
     if (!title || !message) {
-        Swal.fire({ title: 'Error', text: 'Please fill all fields', icon: 'error', background: '#000' });
+        Swal.fire({ title: 'Error', text: 'Please fill all fields', icon: 'error' });
         return;
     }
     
@@ -1966,7 +1982,7 @@ window.postAdminAnnouncement = async function() {
         createdAt: Timestamp.now()
     });
     
-    Swal.fire({ title: 'Success', text: 'Announcement posted', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
+    Swal.fire({ title: 'Success', text: 'Announcement posted', icon: 'success', confirmButtonColor: '#fff' });
     document.getElementById('announceTitle').value = '';
     document.getElementById('announceMessage').value = '';
     loadAnnouncements();
@@ -2018,14 +2034,14 @@ window.addEmployee = async function() {
     const role = document.getElementById('empRole').value;
     
     if (!fullName || !email || !dssn) {
-        Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', background: '#000', confirmButtonColor: '#fff' });
+        Swal.fire({ title: 'Error', text: 'Please fill required fields', icon: 'error', confirmButtonColor: '#fff' });
         return;
     }
     
     const q = query(collection(db, 'employees'), where('dssn', '==', dssn));
     const existing = await getDocs(q);
     if (!existing.empty) {
-        Swal.fire({ title: 'Error', text: 'DSSN already exists!', icon: 'error', background: '#000', confirmButtonColor: '#fff' });
+        Swal.fire({ title: 'Error', text: 'DSSN already exists!', icon: 'error', confirmButtonColor: '#fff' });
         return;
     }
     
@@ -2045,7 +2061,7 @@ window.addEmployee = async function() {
     });
     
     bootstrap.Modal.getInstance(document.getElementById('employeeModal')).hide();
-    Swal.fire({ title: 'Success', text: 'Employee added!', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
+    Swal.fire({ title: 'Success', text: 'Employee added!', icon: 'success', confirmButtonColor: '#fff' });
     await loadEmployeesTable();
 };
 
@@ -2057,13 +2073,12 @@ window.deleteEmployee = async function(employeeId) {
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete',
-        background: '#000'
+        confirmButtonText: 'Yes, delete'
     });
     
     if (result.isConfirmed) {
         await deleteDoc(doc(db, 'employees', employeeId));
-        Swal.fire({ title: 'Deleted', text: 'Employee deleted', icon: 'success', background: '#000', confirmButtonColor: '#fff' });
+        Swal.fire({ title: 'Deleted', text: 'Employee deleted', icon: 'success', confirmButtonColor: '#fff' });
         await loadEmployeesTable();
     }
 };
@@ -2073,7 +2088,7 @@ window.generateReport = async function() {
     const endDate = document.getElementById('reportEnd').value;
     
     if (!startDate || !endDate) {
-        Swal.fire({ title: 'Error', text: 'Please select date range', icon: 'error', background: '#000' });
+        Swal.fire({ title: 'Error', text: 'Please select date range', icon: 'error' });
         return;
     }
     
@@ -2115,7 +2130,7 @@ window.generateReport = async function() {
 window.calculatePayroll = async function() {
     const month = document.getElementById('payrollMonth').value;
     if (!month) {
-        Swal.fire({ title: 'Error', text: 'Please select month', icon: 'error', background: '#000' });
+        Swal.fire({ title: 'Error', text: 'Please select month', icon: 'error' });
         return;
     }
     
