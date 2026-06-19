@@ -8,9 +8,38 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
+        /* --- THEME TOGGLE BUTTON --- */
+        .theme-toggle-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(0, 40, 104, 0.3);
+            border-radius: 30px;
+            color: #ffffff;
+            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .theme-toggle-btn:hover {
+            background: rgba(255,255,255,0.2);
+            box-shadow: 0 0 20px rgba(0, 40, 104, 0.6);
+        }
+        .theme-toggle-btn i {
+            font-size: 1.1rem;
+        }
+        body.light-mode .theme-toggle-btn {
+            background: rgba(0,0,0,0.05);
+            color: #000;
+            border-color: rgba(0,0,0,0.15);
+        }
+        body.light-mode .theme-toggle-btn:hover {
+            background: rgba(0,0,0,0.1);
+        }
+
+        /* Mobile menu button */
         .mobile-menu-btn {
             position: fixed;
             top: 15px;
@@ -30,8 +59,13 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
+        body.light-mode .mobile-menu-btn {
+            background: rgba(255,255,255,0.9);
+            color: #000;
+            border-color: rgba(0,0,0,0.1);
+        }
         .mobile-menu-btn:hover { background: rgba(255, 255, 255, 0.2); }
-        
+
         @media (max-width: 768px) {
             .mobile-menu-btn { display: flex; }
             .sidebar-glass {
@@ -70,21 +104,14 @@
             .glass-admin-card i { font-size: 1.8rem; }
             .glass-admin-card h5 { font-size: 0.8rem; }
         }
-        
-        @media (min-width: 769px) and (max-width: 1024px) {
-            .glass-nav-item span { font-size: 0.8rem; }
-            .glass-nav-item i { font-size: 1rem; }
-            .stat-info h3 { font-size: 1.2rem; }
-            .main-glass { padding: 15px; }
-        }
-        
+
         @media (max-width: 480px) {
             .glass-stat-card { flex-direction: column; text-align: center; gap: 8px; }
             .brand-text { font-size: 1rem; }
             .glass-nav .container-fluid { padding-left: 50px; padding-right: 10px; }
             .btn-glass-logout { padding: 5px 10px; font-size: 0.75rem; }
         }
-        
+
         .sidebar-overlay {
             position: fixed;
             top: 0;
@@ -97,54 +124,13 @@
         }
         .sidebar-overlay.active { display: block; }
 
-        /* Fix for white background buttons in modals - black text */
-        .swal2-confirm,
-        .swal2-cancel,
-        .swal2-deny {
-            color: #000000 !important;
-        }
-        .swal2-confirm:hover,
-        .swal2-cancel:hover,
-        .swal2-deny:hover {
-            color: #000000 !important;
-        }
-        /* SweetAlert2 input text color */
-        .swal2-input,
-        .swal2-textarea,
-        .swal2-select {
-            color: #000000 !important;
-            background: #ffffff !important;
-        }
-        .swal2-input::placeholder {
-            color: #666666 !important;
-        }
-        /* Modal footer buttons */
-        .modal-footer .btn {
-            color: #000000 !important;
-        }
-        .modal-footer .btn-glass-primary {
-            color: #ffffff !important;
-        }
-        .modal-footer .btn-glass-secondary {
-            color: #000000 !important;
-            background: rgba(255, 255, 255, 0.9) !important;
-        }
-        /* Glass modal body text */
-        .glass-modal .modal-body label {
-            color: rgba(220, 240, 255, 0.9);
-        }
-        /* Location info styling */
         .office-location-info {
             background: rgba(0, 40, 104, 0.2);
-            border: 1px solid var(--liberia-blue);
+            border: 1px solid #002868;
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 15px;
             text-align: center;
-        }
-        .office-location-info i {
-            color: var(--liberia-gold);
-            margin-right: 8px;
         }
         .location-status {
             font-size: 0.9rem;
@@ -164,8 +150,22 @@
         }
         .location-status.error {
             background: rgba(191, 10, 48, 0.2);
-            border: 1px solid var(--liberia-red);
+            border: 1px solid #BF0A30;
             color: #ffaaaa;
+        }
+
+        /* Light mode overrides for location status */
+        body.light-mode .location-status.verified {
+            color: #1a6b1a;
+            background: rgba(76, 175, 80, 0.15);
+        }
+        body.light-mode .location-status.unverified {
+            color: #8a5a00;
+            background: rgba(255, 152, 0, 0.15);
+        }
+        body.light-mode .location-status.error {
+            color: #a00020;
+            background: rgba(191, 10, 48, 0.12);
         }
     </style>
 </head>
@@ -184,6 +184,12 @@
                 <span class="brand-text">Digital Liberia HR</span>
             </a>
             <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
+                <!-- THEME TOGGLE BUTTON -->
+                <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                    <span id="themeLabel">Dark</span>
+                </button>
+
                 <button id="editProfileBtn" onclick="showEditProfileModal()" class="btn-glass-primary" style="display: none;">
                     <i class="fas fa-user-edit"></i>
                 </button>
@@ -304,18 +310,15 @@
                     </div>
                 </div>
 
-                <!-- Attendance Section - Simplified -->
+                <!-- Attendance Section -->
                 <div id="attendanceSection" style="display: none;" class="glass-card fade-in">
                     <div class="glass-card-inner">
                         <div class="card-header-glass"><i class="fas fa-fingerprint"></i> Daily Attendance</div>
-                        
-                        <!-- Office Location Info -->
                         <div class="office-location-info">
                             <i class="fas fa-map-pin"></i>
                             <strong>Office Address:</strong> 76VG+38 Monrovia, Liberia
                             <br><small class="text-muted">You must be at the office to check in/out</small>
                         </div>
-
                         <div class="text-center mb-3">
                             <h3 id="attendanceDate" class="glass-text"></h3>
                             <div id="attendanceStatus" class="mt-2"></div>
@@ -323,8 +326,6 @@
                                 <i class="fas fa-spinner fa-spin"></i> Detecting your location...
                             </div>
                         </div>
-
-                        <!-- Simplified Attendance: Just Check In and Check Out buttons -->
                         <div class="row">
                             <div class="col-12 text-center">
                                 <div class="form-group-glass mb-3">
@@ -336,7 +337,6 @@
                                 </div>
                             </div>
                         </div>
-
                         <div class="text-center mt-4">
                             <button onclick="checkIn()" id="checkInBtn" class="btn-glass-success btn-lg">
                                 <i class="fas fa-sign-in-alt"></i> Check In
@@ -346,15 +346,11 @@
                             </button>
                         </div>
                     </div>
-
-                    <!-- Attendance History -->
                     <div class="glass-card-inner mt-4">
                         <div class="card-header-glass"><i class="fas fa-chart-line"></i> Attendance History</div>
                         <div class="table-responsive">
                             <table class="glass-table">
-                                <thead>
-                                    <tr><th>Date</th><th>Check In</th><th>Check Out</th><th>Hours</th><th>Status</th><th>Location</th>
-                                </thead>
+                                <thead><tr><th>Date</th><th>Check In</th><th>Check Out</th><th>Hours</th><th>Status</th><th>Location</th></tr></thead>
                                 <tbody id="attendanceHistoryTable"></tbody>
                             </table>
                         </div>
@@ -364,8 +360,7 @@
                 <!-- Appointments Section -->
                 <div id="appointmentsSection" style="display: none;" class="glass-card fade-in">
                     <div class="glass-card-inner">
-                        <div class="card-header-glass">
-                            <i class="fas fa-calendar-alt"></i> Calendar View
+                        <div class="card-header-glass"><i class="fas fa-calendar-alt"></i> Calendar View
                             <button onclick="showAddAppointmentModal()" class="btn-glass-primary btn-sm float-end"><i class="fas fa-plus"></i> New</button>
                         </div>
                         <div id="calendar" class="calendar-glass"></div>
@@ -602,14 +597,45 @@
     <div class="modal fade" id="employeeModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-user-plus me-2"></i>Add Employee</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Full Name</label><input type="text" id="empName" class="glass-input"></div><div class="mb-3"><label>Email</label><input type="email" id="empEmail" class="glass-input"></div><div class="mb-3"><label>DSSN</label><input type="text" id="empDSSN" class="glass-input" placeholder="PYGMNL94LR09Z24"></div><div class="mb-3"><label>Department</label><select id="empDepartment" class="glass-input"><option>Engineering</option><option>Sales</option><option>HR</option><option>Finance</option><option>Operations</option><option>Management</option></select></div><div class="mb-3"><label>Position</label><input type="text" id="empPosition" class="glass-input"></div><div class="mb-3"><label>Phone</label><input type="text" id="empPhone" class="glass-input"></div><div class="mb-3"><label>Salary (USD)</label><input type="number" id="empSalary" class="glass-input"></div><div class="mb-3"><label>Role</label><select id="empRole" class="glass-input"><option>employee</option><option>admin</option><option>super admin</option></select></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal" style="color:#000 !important;">Cancel</button><button class="btn-glass-primary" onclick="addEmployee()">Add Employee</button></div></div></div></div>
 
     <script>
-        // Mobile sidebar functions
+        // ========== THEME TOGGLE ==========
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.getElementById('themeIcon');
+            const label = document.getElementById('themeLabel');
+            if (body.classList.contains('light-mode')) {
+                body.classList.remove('light-mode');
+                icon.className = 'fas fa-moon';
+                label.textContent = 'Dark';
+                localStorage.setItem('hrTheme', 'dark');
+            } else {
+                body.classList.add('light-mode');
+                icon.className = 'fas fa-sun';
+                label.textContent = 'Light';
+                localStorage.setItem('hrTheme', 'light');
+            }
+        }
+
+        // Load saved theme
+        (function loadTheme() {
+            const saved = localStorage.getItem('hrTheme');
+            if (saved === 'light') {
+                document.body.classList.add('light-mode');
+                document.getElementById('themeIcon').className = 'fas fa-sun';
+                document.getElementById('themeLabel').textContent = 'Light';
+            } else {
+                document.body.classList.remove('light-mode');
+                document.getElementById('themeIcon').className = 'fas fa-moon';
+                document.getElementById('themeLabel').textContent = 'Dark';
+            }
+        })();
+
+        // ========== MOBILE SIDEBAR ==========
         function toggleSidebar() {
             const sidebar = document.querySelector('.sidebar-glass');
             const overlay = document.querySelector('.sidebar-overlay');
             sidebar.classList.toggle('open');
             overlay.classList.toggle('active');
         }
-        
         function closeSidebarOnMobile() {
             if (window.innerWidth <= 768) {
                 const sidebar = document.querySelector('.sidebar-glass');
@@ -618,7 +644,39 @@
                 overlay.classList.remove('active');
             }
         }
+
+        // ========== GLOBAL FUNCTIONS STUBS ==========
+        // These will be overridden by app.js
+        window.showSection = function(section) { console.log('showSection:', section); };
+        window.logout = function() { localStorage.removeItem('currentUser'); window.location.reload(); };
+        window.showEditProfileModal = function() { console.log('showEditProfileModal'); };
+        window.getLocation = function() { console.log('getLocation'); };
+        window.checkIn = function() { console.log('checkIn'); };
+        window.checkOut = function() { console.log('checkOut'); };
+        window.showAddAppointmentModal = function() { console.log('showAddAppointmentModal'); };
+        window.showAddTaskModal = function() { console.log('showAddTaskModal'); };
+        window.showLeaveRequestModal = function() { console.log('showLeaveRequestModal'); };
+        window.showExpenseModal = function() { console.log('showExpenseModal'); };
+        window.showAdminEmployees = function() { console.log('showAdminEmployees'); };
+        window.showAdminReports = function() { console.log('showAdminReports'); };
+        window.showAdminPayroll = function() { console.log('showAdminPayroll'); };
+        window.showAdminAnnouncement = function() { console.log('showAdminAnnouncement'); };
+        window.showGroupChat = function() { console.log('showGroupChat'); };
+        window.showDMs = function() { console.log('showDMs'); };
+        window.sendChatMessage = function() { console.log('sendChatMessage'); };
+        window.createAppointment = function() { console.log('createAppointment'); };
+        window.createTask = function() { console.log('createTask'); };
+        window.submitLeaveRequest = function() { console.log('submitLeaveRequest'); };
+        window.submitExpense = function() { console.log('submitExpense'); };
+        window.postAnnouncement = function() { console.log('postAnnouncement'); };
+        window.addEmployee = function() { console.log('addEmployee'); };
+        window.previewProfilePicture = function(input) { console.log('previewProfilePicture'); };
+        window.updateProfile = function() { console.log('updateProfile'); };
+        window.login = function() { console.log('login'); };
+        window.setupPassword = function() { console.log('setupPassword'); };
+        window.loadTasks = function() { console.log('loadTasks'); };
     </script>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
     <script type="module" src="js/firebase-config.js"></script>
