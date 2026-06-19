@@ -185,6 +185,26 @@
                 padding: 4px 10px;
             }
         }
+
+        /* Currency badge */
+        .currency-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+        .currency-usd {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        .currency-lrd {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ff9800;
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -435,7 +455,7 @@
                     </div>
                 </div>
 
-                <!-- Expenses Section - UPDATED with Report Buttons -->
+                <!-- Expenses Section - UPDATED with Report Buttons & Currency -->
                 <div id="expensesSection" style="display: none;" class="glass-card fade-in">
                     <div class="glass-card-inner">
                         <div class="card-header-glass">
@@ -624,7 +644,59 @@
 
     <div class="modal fade" id="leaveModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-umbrella-beach me-2"></i>Request Leave</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Leave Type</label><select id="leaveType" class="glass-input"><option>Annual Leave</option><option>Sick Leave</option><option>Unpaid Leave</option><option>Emergency Leave</option></select></div><div class="mb-3"><label>Start Date</label><input type="date" id="leaveStart" class="glass-input"></div><div class="mb-3"><label>End Date</label><input type="date" id="leaveEnd" class="glass-input"></div><div class="mb-3"><label>Reason</label><textarea id="leaveReason" rows="3" class="glass-input"></textarea></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal" style="color:#000 !important;">Cancel</button><button class="btn-glass-primary" onclick="submitLeaveRequest()">Submit Request</button></div></div></div></div>
 
-    <div class="modal fade" id="expenseModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-receipt me-2"></i>Submit Expense</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Category</label><select id="expenseCategory" class="glass-input"><option>Transportation</option><option>Meals</option><option>Office Supplies</option><option>Software/Tools</option><option>Training</option></select></div><div class="mb-3"><label>Amount (USD)</label><input type="number" id="expenseAmount" class="glass-input" step="0.01"></div><div class="mb-3"><label>Date</label><input type="date" id="expenseDate" class="glass-input"></div><div class="mb-3"><label>Description</label><textarea id="expenseDescription" rows="3" class="glass-input"></textarea></div><div class="mb-3"><label>Receipt</label><input type="file" id="receiptImage" class="glass-input" accept="image/*"></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal" style="color:#000 !important;">Cancel</button><button class="btn-glass-primary" onclick="submitExpense()">Submit</button></div></div></div></div>
+    <!-- EXPENSE MODAL - UPDATED with Currency Field -->
+    <div class="modal fade" id="expenseModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-modal">
+                <div class="modal-header glass-modal-header">
+                    <h5><i class="fas fa-receipt me-2"></i>Submit Expense</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label>Category</label>
+                        <select id="expenseCategory" class="glass-input">
+                            <option>Transportation</option>
+                            <option>Meals</option>
+                            <option>Office Supplies</option>
+                            <option>Software/Tools</option>
+                            <option>Training</option>
+                            <option>Utilities</option>
+                            <option>Rent</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Currency</label>
+                        <select id="expenseCurrency" class="glass-input">
+                            <option value="USD">🇺🇸 USD - US Dollar</option>
+                            <option value="LRD">🇱🇷 LRD - Liberian Dollar</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Amount</label>
+                        <input type="number" id="expenseAmount" class="glass-input" step="0.01" placeholder="Enter amount">
+                    </div>
+                    <div class="mb-3">
+                        <label>Date</label>
+                        <input type="date" id="expenseDate" class="glass-input">
+                    </div>
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <textarea id="expenseDescription" rows="3" class="glass-input" placeholder="Describe the expense"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>Receipt</label>
+                        <input type="file" id="receiptImage" class="glass-input" accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-glass-secondary" data-bs-dismiss="modal" style="color:#000 !important;">Cancel</button>
+                    <button class="btn-glass-primary" onclick="submitExpense()">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="modal fade" id="announcementModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-modal"><div class="modal-header glass-modal-header"><h5><i class="fas fa-bullhorn me-2"></i>Post Announcement</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Title</label><input type="text" id="announceTitle" class="glass-input"></div><div class="mb-3"><label>Priority</label><select id="announcePriority" class="glass-input"><option>Normal</option><option>High</option><option>Urgent</option></select></div><div class="mb-3"><label>Message</label><textarea id="announceMessage" rows="4" class="glass-input"></textarea></div></div><div class="modal-footer"><button class="btn-glass-secondary" data-bs-dismiss="modal" style="color:#000 !important;">Cancel</button><button class="btn-glass-primary" onclick="postAnnouncement()">Post</button></div></div></div></div>
 
