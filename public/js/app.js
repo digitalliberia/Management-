@@ -6,7 +6,6 @@ import {
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 // ========== THEME TOGGLE SUPPORT ==========
-// This ensures the theme persists across page reloads and works with the toggle button
 (function initTheme() {
     const saved = localStorage.getItem('hrTheme');
     if (saved === 'light') {
@@ -24,7 +23,6 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
     }
 })();
 
-// Expose toggleTheme to global scope for the HTML onclick
 window.toggleTheme = function() {
     const body = document.body;
     const icon = document.getElementById('themeIcon');
@@ -102,6 +100,40 @@ function formatTime(seconds) {
     }
 }
 
+function formatCurrency(amount) {
+    return '$' + parseFloat(amount).toFixed(2);
+}
+
+function getDateRange(type) {
+    const now = new Date();
+    let startDate, endDate;
+    const today = now.toISOString().split('T')[0];
+    
+    switch(type) {
+        case 'daily':
+            startDate = today;
+            endDate = today;
+            break;
+        case 'weekly':
+            const weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - now.getDay());
+            startDate = weekStart.toISOString().split('T')[0];
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            endDate = weekEnd.toISOString().split('T')[0];
+            break;
+        case 'monthly':
+            startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            endDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+            break;
+        default:
+            startDate = today;
+            endDate = today;
+    }
+    return { startDate, endDate };
+}
+
 // ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', async () => {
     updateDateTime();
@@ -140,7 +172,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const editProfileBtn = document.getElementById('editProfileBtn');
         if (editProfileBtn) editProfileBtn.style.display = 'inline-block';
         
-        // Set up real-time attendance listener
         setupRealtimeAttendance();
         
         await loadDashboardData();
@@ -203,7 +234,6 @@ function setupRealtimeAttendance() {
         
         if (hasCheckIn && !hasCheckOut) {
             attendanceCheckInTime = checkInTime;
-            // Start the timer
             if (attendanceIntervalId) {
                 clearInterval(attendanceIntervalId);
             }
@@ -241,7 +271,6 @@ function updateTodayHours() {
         const diffSeconds = (now - attendanceCheckInTime) / 1000;
         todayHoursElem.textContent = formatTime(diffSeconds);
     } else if (isAttendanceCheckedIn && isAttendanceCheckedOut) {
-        // Get the total hours from the latest attendance record
         const today = new Date().toISOString().split('T')[0];
         const q = query(collection(db, 'attendance'), 
             where('employeeId', '==', currentEmployee?.id), 
@@ -719,7 +748,6 @@ async function loadDashboardData() {
         if (todayHoursElem) {
             if (checkInTime && !checkOutTime) {
                 // Currently checked in - live timer will handle this
-                // The interval in setupRealtimeAttendance updates this
             } else if (checkInTime && checkOutTime) {
                 todayHoursElem.textContent = hours.toFixed(1) + 'h';
             } else {
@@ -837,7 +865,7 @@ async function loadDashboardData() {
                     <i class="fas fa-receipt"></i>
                     <div class="flex-grow-1">
                         <strong>${data.employeeName}</strong> - ${data.category}
-                        <small class="d-block text-muted">$${data.amount} - ${data.date}</small>
+                        <small class="d-block text-muted">${formatCurrency(data.amount)} - ${data.date}</small>
                     </div>
                     <span class="status-badge status-${data.status}">${data.status || 'pending'}</span>
                     <i class="fas fa-chevron-right"></i>
@@ -1027,11 +1055,13 @@ window.showExpenseDetail = async function(expenseId) {
         html: `
             <div class="text-start">
                 <p><strong>Category:</strong> ${expense.category}</p>
-                <p><strong>Amount:</strong> $${expense.amount}</p>
+                <p><strong>Amount:</strong> ${formatCurrency(expense.amount)}</p>
                 <p><strong>Date:</strong> ${expense.date}</p>
                 <p><strong>Description:</strong><br>${expense.description || 'No description'}</p>
                 <p><strong>Status:</strong> <span class="badge bg-${expense.status === 'approved' ? 'success' : expense.status === 'rejected' ? 'danger' : 'warning'}">${expense.status}</span></p>
                 ${expense.receiptUrl ? `<p><strong>Receipt:</strong> <a href="${expense.receiptUrl}" target="_blank" style="color: #fff;">View Receipt</a></p>` : ''}
+                ${expense.approvedBy ? `<p><strong>Approved By:</strong> ${expense.approvedByName || 'Admin'}</p>` : ''}
+                ${expense.approvedAt ? `<p><strong>Approved On:</strong> ${expense.approvedAt.toDate().toLocaleString()}</p>` : ''}
             </div>
         `,
         icon: 'info',
@@ -1086,7 +1116,7 @@ async function loadAttendanceHistory() {
     }
 }
 
-// ========== REST OF THE FUNCTIONS ==========
+// ========== APPOINTMENTS ==========
 async function loadAppointments() {
     try {
         const q = query(collection(db, 'appointments'), orderBy('startTime', 'desc'));
@@ -1129,6 +1159,7 @@ async function loadAppointments() {
     }
 }
 
+// ========== TASKS ==========
 async function loadTasks() {
     try {
         const filter = document.getElementById('taskFilter')?.value || 'all';
@@ -1166,6 +1197,7 @@ async function loadTasks() {
     }
 }
 
+// ========== LEAVE REQUESTS ==========
 async function loadLeaveRequests() {
     try {
         const q = query(collection(db, 'leave_requests'), orderBy('createdAt', 'desc'));
@@ -1202,33 +1234,563 @@ async function loadLeaveRequests() {
     }
 }
 
+// ========== EXPENSES (ENHANCED WITH REPORTS) ==========
 async function loadExpenses() {
     try {
         const q = query(collection(db, 'expenses'), orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(q);
         const container = document.getElementById('expensesList');
         if (!container) return;
-        container.innerHTML = '<div class="table-responsive"><table class="glass-table"><thead><tr><th>Employee</th><th>Date</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>';
-        const tbody = container.querySelector('tbody');
+        
+        // Build the expenses table with enhanced UI
+        container.innerHTML = `
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn-glass-primary btn-sm" onclick="generateExpenseReport('daily')">
+                            <i class="fas fa-calendar-day"></i> Daily Report
+                        </button>
+                        <button class="btn-glass-primary btn-sm" onclick="generateExpenseReport('weekly')">
+                            <i class="fas fa-calendar-week"></i> Weekly Report
+                        </button>
+                        <button class="btn-glass-primary btn-sm" onclick="generateExpenseReport('monthly')">
+                            <i class="fas fa-calendar-alt"></i> Monthly Report
+                        </button>
+                        <button class="btn-glass-primary btn-sm" onclick="showExpenseSummary()">
+                            <i class="fas fa-chart-pie"></i> Summary
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="glass-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expensesTableBody"></tbody>
+                </table>
+            </div>
+        `;
+        
+        const tbody = document.getElementById('expensesTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        
+        const isAdmin = currentEmployee.role === 'admin' || currentEmployee.role === 'super admin';
         
         snapshot.forEach(doc => {
             const data = doc.data();
+            const isPending = data.status === 'pending';
+            const isOwnExpense = data.employeeId === currentEmployee.id;
+            
+            const canEdit = isOwnExpense && isPending;
+            const canDelete = isOwnExpense && isPending;
+            const canConfirm = isAdmin && isPending;
+            
             tbody.innerHTML += `
                 <tr>
                     <td>${data.employeeName} <small class="text-muted d-block">${data.employeePosition || ''}</small></td>
                     <td>${data.date}</td>
                     <td>${data.category}</td>
-                    <td>$${data.amount}</td>
+                    <td><strong>${formatCurrency(data.amount)}</strong></td>
                     <td><span class="status-badge status-${data.status}">${data.status}</span></td>
-                    <td><button class="btn-glass-sm" onclick="showExpenseDetail('${doc.id}')">View</button></td>
+                    <td>
+                        <button class="btn-glass-sm me-1" onclick="showExpenseDetail('${doc.id}')" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${canEdit ? `<button class="btn-glass-sm me-1" onclick="showEditExpenseModal('${doc.id}')" style="background: rgba(255, 152, 0, 0.2); border-color: #ff9800;" title="Edit"><i class="fas fa-edit"></i></button>` : ''}
+                        ${canConfirm ? `<button class="btn-glass-sm me-1" onclick="confirmExpense('${doc.id}')" style="background: rgba(76, 175, 80, 0.2); border-color: #4caf50;" title="Approve"><i class="fas fa-check-circle"></i></button>` : ''}
+                        ${canDelete ? `<button class="btn-glass-sm" onclick="deleteExpense('${doc.id}')" style="background: rgba(191, 10, 48, 0.2); border-color: #BF0A30;" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
+                    </td>
                 </tr>
             `;
         });
+        
+        if (snapshot.size === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4">No expenses recorded yet</td></tr>';
+        }
     } catch (error) {
         console.error('Error loading expenses:', error);
     }
 }
 
+// ========== EXPENSE REPORT GENERATION ==========
+window.generateExpenseReport = async function(type) {
+    try {
+        const { startDate, endDate } = getDateRange(type);
+        const q = query(collection(db, 'expenses'), where('date', '>=', startDate), where('date', '<=', endDate));
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) {
+            Swal.fire({
+                title: 'No Expenses Found',
+                text: `No expenses recorded for ${type} period (${startDate} to ${endDate})`,
+                icon: 'info',
+                confirmButtonColor: '#fff'
+            });
+            return;
+        }
+        
+        let totalAmount = 0;
+        let pendingTotal = 0;
+        let approvedTotal = 0;
+        const categoryTotals = {};
+        const employeeTotals = {};
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const amount = parseFloat(data.amount) || 0;
+            totalAmount += amount;
+            
+            if (data.status === 'pending') pendingTotal += amount;
+            if (data.status === 'approved') approvedTotal += amount;
+            
+            if (!categoryTotals[data.category]) categoryTotals[data.category] = 0;
+            categoryTotals[data.category] += amount;
+            
+            if (!employeeTotals[data.employeeName]) employeeTotals[data.employeeName] = 0;
+            employeeTotals[data.employeeName] += amount;
+        });
+        
+        // Build category breakdown
+        let categoryHtml = '';
+        for (const [category, amount] of Object.entries(categoryTotals)) {
+            const percentage = ((amount / totalAmount) * 100).toFixed(1);
+            categoryHtml += `
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span>${category}</span>
+                    <span><strong>${formatCurrency(amount)}</strong> (${percentage}%)</span>
+                </div>
+                <div class="progress mb-2" style="height: 6px; background: rgba(255,255,255,0.1);">
+                    <div class="progress-bar" style="width: ${percentage}%; background: linear-gradient(90deg, #002868, #BF0A30);"></div>
+                </div>
+            `;
+        }
+        
+        // Build employee breakdown
+        let employeeHtml = '';
+        for (const [name, amount] of Object.entries(employeeTotals)) {
+            const percentage = ((amount / totalAmount) * 100).toFixed(1);
+            employeeHtml += `
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span>${name}</span>
+                    <span><strong>${formatCurrency(amount)}</strong> (${percentage}%)</span>
+                </div>
+            `;
+        }
+        
+        // Get report title
+        const reportTitles = {
+            daily: 'Daily Expense Report',
+            weekly: 'Weekly Expense Report',
+            monthly: 'Monthly Expense Report'
+        };
+        
+        const dateLabels = {
+            daily: `Today (${startDate})`,
+            weekly: `Week of ${startDate} to ${endDate}`,
+            monthly: `Month of ${startDate} to ${endDate}`
+        };
+        
+        Swal.fire({
+            title: reportTitles[type] || 'Expense Report',
+            html: `
+                <div class="text-start">
+                    <div class="mb-3 p-2" style="background: rgba(0,40,104,0.1); border-radius: 8px;">
+                        <p class="mb-1"><strong>📅 Period:</strong> ${dateLabels[type] || startDate + ' to ' + endDate}</p>
+                        <p class="mb-1"><strong>📊 Total Expenses:</strong> <span style="font-size: 1.4rem; font-weight: 700;">${formatCurrency(totalAmount)}</span></p>
+                        <div class="d-flex gap-3 mt-2">
+                            <span><span class="badge bg-warning">⏳ Pending:</span> ${formatCurrency(pendingTotal)}</span>
+                            <span><span class="badge bg-success">✅ Approved:</span> ${formatCurrency(approvedTotal)}</span>
+                            <span><span class="badge bg-secondary">📝 Total Entries:</span> ${snapshot.size}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-tags"></i> By Category</h6>
+                            ${categoryHtml}
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-users"></i> By Employee</h6>
+                            ${employeeHtml}
+                        </div>
+                    </div>
+                </div>
+            `,
+            icon: 'info',
+            confirmButtonColor: '#fff',
+            width: 700,
+            showCloseButton: true,
+            showDenyButton: true,
+            denyButtonText: '📥 Export as CSV',
+            denyButtonColor: '#4caf50'
+        }).then((result) => {
+            if (result.isDenied) {
+                exportExpenseReportCSV(snapshot, type, startDate, endDate);
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error generating report:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to generate report: ' + error.message,
+            icon: 'error',
+            confirmButtonColor: '#fff'
+        });
+    }
+};
+
+// ========== EXPORT EXPENSE REPORT AS CSV ==========
+function exportExpenseReportCSV(snapshot, type, startDate, endDate) {
+    try {
+        let csv = 'Date,Employee,Category,Amount,Status,Description\n';
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            csv += `${data.date},${data.employeeName},${data.category},${data.amount},${data.status},"${(data.description || '').replace(/"/g, '""')}"\n`;
+        });
+        
+        // Add summary row
+        let totalAmount = 0;
+        snapshot.forEach(doc => { totalAmount += parseFloat(doc.data().amount) || 0; });
+        csv += `\nTotal Expenses,,,${totalAmount.toFixed(2)},,`;
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `expense_report_${type}_${startDate}_to_${endDate}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        Swal.fire({
+            title: '✅ Exported!',
+            text: 'CSV file downloaded successfully.',
+            icon: 'success',
+            confirmButtonColor: '#fff'
+        });
+    } catch (error) {
+        console.error('Error exporting CSV:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to export CSV: ' + error.message,
+            icon: 'error',
+            confirmButtonColor: '#fff'
+        });
+    }
+}
+
+// ========== EXPENSE SUMMARY ==========
+window.showExpenseSummary = async function() {
+    try {
+        const snapshot = await getDocs(collection(db, 'expenses'));
+        if (snapshot.empty) {
+            Swal.fire({
+                title: 'No Expenses',
+                text: 'No expenses recorded yet.',
+                icon: 'info',
+                confirmButtonColor: '#fff'
+            });
+            return;
+        }
+        
+        let total = 0;
+        let pending = 0;
+        let approved = 0;
+        let rejected = 0;
+        const categoryData = {};
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const amount = parseFloat(data.amount) || 0;
+            total += amount;
+            
+            if (data.status === 'pending') pending += amount;
+            if (data.status === 'approved') approved += amount;
+            if (data.status === 'rejected') rejected += amount;
+            
+            if (!categoryData[data.category]) categoryData[data.category] = 0;
+            categoryData[data.category] += amount;
+        });
+        
+        // Sort categories by amount
+        const sortedCategories = Object.entries(categoryData).sort((a, b) => b[1] - a[1]);
+        let topCategories = sortedCategories.slice(0, 5).map(([cat, amt]) => 
+            `<li class="mb-1">${cat}: <strong>${formatCurrency(amt)}</strong></li>`
+        ).join('');
+        
+        Swal.fire({
+            title: '📊 Expense Summary',
+            html: `
+                <div class="text-start">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <div class="p-2" style="background: rgba(0,40,104,0.1); border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.8rem; font-weight: 700; color: #4caf50;">${formatCurrency(total)}</div>
+                                <small>Total All Expenses</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2" style="background: rgba(255,152,0,0.1); border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.8rem; font-weight: 700; color: #ff9800;">${formatCurrency(pending)}</div>
+                                <small>Pending Approval</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <div class="p-2" style="background: rgba(76,175,80,0.1); border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.4rem; font-weight: 700; color: #4caf50;">${formatCurrency(approved)}</div>
+                                <small>Approved</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2" style="background: rgba(244,67,54,0.1); border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.4rem; font-weight: 700; color: #f44336;">${formatCurrency(rejected)}</div>
+                                <small>Rejected</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h6><i class="fas fa-trophy"></i> Top 5 Expense Categories</h6>
+                        <ul class="list-unstyled">${topCategories || '<li>No categories yet</li>'}</ul>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Total Entries: ${snapshot.size}</small>
+                    </div>
+                </div>
+            `,
+            icon: 'info',
+            confirmButtonColor: '#fff',
+            width: 500
+        });
+    } catch (error) {
+        console.error('Error loading summary:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to load summary: ' + error.message,
+            icon: 'error',
+            confirmButtonColor: '#fff'
+        });
+    }
+};
+
+// ========== EXPENSE: CONFIRM (Approve) ==========
+window.confirmExpense = async function(expenseId) {
+    const result = await Swal.fire({
+        title: 'Approve Expense',
+        text: 'Are you sure you want to approve this expense? This will change the status to "approved".',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#4caf50',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, Approve',
+        cancelButtonText: 'Cancel'
+    });
+    
+    if (result.isConfirmed) {
+        try {
+            await updateDoc(doc(db, 'expenses', expenseId), {
+                status: 'approved',
+                approvedAt: Timestamp.now(),
+                approvedBy: currentEmployee.id,
+                approvedByName: currentEmployee.fullName
+            });
+            
+            Swal.fire({
+                title: '✅ Approved!',
+                text: 'Expense has been approved successfully.',
+                icon: 'success',
+                confirmButtonColor: '#fff'
+            });
+            
+            await loadExpenses();
+            await loadDashboardData();
+        } catch (error) {
+            console.error('Error approving expense:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to approve expense: ' + error.message,
+                icon: 'error',
+                confirmButtonColor: '#fff'
+            });
+        }
+    }
+};
+
+// ========== EXPENSE: DELETE ==========
+window.deleteExpense = async function(expenseId) {
+    const result = await Swal.fire({
+        title: 'Delete Expense',
+        text: 'Are you sure you want to delete this expense? This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, Delete',
+        cancelButtonText: 'Cancel'
+    });
+    
+    if (result.isConfirmed) {
+        try {
+            await deleteDoc(doc(db, 'expenses', expenseId));
+            
+            Swal.fire({
+                title: '🗑️ Deleted!',
+                text: 'Expense has been deleted successfully.',
+                icon: 'success',
+                confirmButtonColor: '#fff'
+            });
+            
+            await loadExpenses();
+            await loadDashboardData();
+        } catch (error) {
+            console.error('Error deleting expense:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to delete expense: ' + error.message,
+                icon: 'error',
+                confirmButtonColor: '#fff'
+            });
+        }
+    }
+};
+
+// ========== EXPENSE: EDIT ==========
+window.showEditExpenseModal = async function(expenseId) {
+    try {
+        const expenseDoc = await getDoc(doc(db, 'expenses', expenseId));
+        if (!expenseDoc.exists()) {
+            Swal.fire({ title: 'Error', text: 'Expense not found', icon: 'error' });
+            return;
+        }
+        
+        const expense = expenseDoc.data();
+        
+        if (expense.status !== 'pending') {
+            Swal.fire({
+                title: 'Cannot Edit',
+                text: 'Only pending expenses can be edited.',
+                icon: 'warning',
+                confirmButtonColor: '#fff'
+            });
+            return;
+        }
+        
+        if (expense.employeeId !== currentEmployee.id) {
+            Swal.fire({
+                title: 'Cannot Edit',
+                text: 'You can only edit your own expenses.',
+                icon: 'warning',
+                confirmButtonColor: '#fff'
+            });
+            return;
+        }
+        
+        Swal.fire({
+            title: 'Edit Expense',
+            html: `
+                <div class="text-start">
+                    <div class="mb-2">
+                        <label style="color: #666; font-weight: 600;">Category</label>
+                        <select id="editExpenseCategory" class="swal2-input">
+                            <option value="Transportation" ${expense.category === 'Transportation' ? 'selected' : ''}>Transportation</option>
+                            <option value="Meals" ${expense.category === 'Meals' ? 'selected' : ''}>Meals</option>
+                            <option value="Office Supplies" ${expense.category === 'Office Supplies' ? 'selected' : ''}>Office Supplies</option>
+                            <option value="Software/Tools" ${expense.category === 'Software/Tools' ? 'selected' : ''}>Software/Tools</option>
+                            <option value="Training" ${expense.category === 'Training' ? 'selected' : ''}>Training</option>
+                            <option value="Other" ${expense.category === 'Other' ? 'selected' : ''}>Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label style="color: #666; font-weight: 600;">Amount (USD)</label>
+                        <input type="number" id="editExpenseAmount" class="swal2-input" step="0.01" value="${expense.amount}">
+                    </div>
+                    <div class="mb-2">
+                        <label style="color: #666; font-weight: 600;">Date</label>
+                        <input type="date" id="editExpenseDate" class="swal2-input" value="${expense.date}">
+                    </div>
+                    <div class="mb-2">
+                        <label style="color: #666; font-weight: 600;">Description</label>
+                        <textarea id="editExpenseDescription" class="swal2-textarea" rows="3">${expense.description || ''}</textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label style="color: #666; font-weight: 600;">New Receipt (optional)</label>
+                        <input type="file" id="editReceiptImage" class="swal2-file" accept="image/*">
+                    </div>
+                    ${expense.receiptUrl ? `<div class="mb-2"><small>Current receipt uploaded</small></div>` : ''}
+                </div>
+            `,
+            confirmButtonText: 'Save Changes',
+            showCancelButton: true,
+            confirmButtonColor: '#4caf50',
+            cancelButtonColor: '#d33',
+            preConfirm: async () => {
+                const category = Swal.getPopup().querySelector('#editExpenseCategory').value;
+                const amount = parseFloat(Swal.getPopup().querySelector('#editExpenseAmount').value);
+                const date = Swal.getPopup().querySelector('#editExpenseDate').value;
+                const description = Swal.getPopup().querySelector('#editExpenseDescription').value;
+                const receiptFile = Swal.getPopup().querySelector('#editReceiptImage').files[0];
+                
+                if (!amount || amount <= 0) {
+                    Swal.showValidationMessage('Please enter a valid amount');
+                    return false;
+                }
+                if (!date) {
+                    Swal.showValidationMessage('Please select a date');
+                    return false;
+                }
+                
+                let receiptUrl = expense.receiptUrl || '';
+                if (receiptFile) {
+                    const storageRef = ref(storage, `receipts/${currentEmployee.id}/${Date.now()}_${receiptFile.name}`);
+                    await uploadBytes(storageRef, receiptFile);
+                    receiptUrl = await getDownloadURL(storageRef);
+                }
+                
+                await updateDoc(doc(db, 'expenses', expenseId), {
+                    category: category,
+                    amount: amount,
+                    date: date,
+                    description: description,
+                    receiptUrl: receiptUrl,
+                    updatedAt: Timestamp.now()
+                });
+                
+                return true;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: '✅ Updated!',
+                    text: 'Expense has been updated successfully.',
+                    icon: 'success',
+                    confirmButtonColor: '#fff'
+                });
+                loadExpenses();
+                loadDashboardData();
+            }
+        });
+    } catch (error) {
+        console.error('Error loading expense for edit:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to load expense for editing: ' + error.message,
+            icon: 'error',
+            confirmButtonColor: '#fff'
+        });
+    }
+};
+
+// ========== DOCUMENTS ==========
 async function loadDocuments() {
     try {
         const q = query(collection(db, 'documents'), orderBy('createdAt', 'desc'));
@@ -1266,6 +1828,7 @@ async function loadDocuments() {
     }
 }
 
+// ========== PERFORMANCE REVIEWS ==========
 async function loadPerformanceReviews() {
     try {
         const q = query(collection(db, 'performance_reviews'), orderBy('reviewDate', 'desc'));
@@ -1306,6 +1869,7 @@ async function loadPerformanceReviews() {
     }
 }
 
+// ========== ANNOUNCEMENTS ==========
 async function loadAnnouncements() {
     try {
         const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'), limit(10));
@@ -1533,6 +2097,7 @@ window.submitExpense = async function() {
     bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
     Swal.fire({ title: 'Success', text: 'Expense submitted successfully', icon: 'success', confirmButtonColor: '#fff' });
     await loadExpenses();
+    await loadDashboardData();
 };
 
 window.updateTaskStatus = async function(taskId, status) {
