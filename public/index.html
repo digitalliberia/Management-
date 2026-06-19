@@ -167,6 +167,24 @@
             color: #a00020;
             background: rgba(191, 10, 48, 0.12);
         }
+
+        /* Expense report buttons container */
+        .expense-report-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .expense-report-buttons .btn-glass-primary {
+            font-size: 0.8rem;
+            padding: 6px 14px;
+        }
+        @media (max-width: 480px) {
+            .expense-report-buttons .btn-glass-primary {
+                font-size: 0.7rem;
+                padding: 4px 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -417,11 +435,27 @@
                     </div>
                 </div>
 
-                <!-- Expenses Section -->
+                <!-- Expenses Section - UPDATED with Report Buttons -->
                 <div id="expensesSection" style="display: none;" class="glass-card fade-in">
                     <div class="glass-card-inner">
-                        <div class="card-header-glass"><i class="fas fa-receipt"></i> Expense Claims
+                        <div class="card-header-glass">
+                            <i class="fas fa-receipt"></i> Expense Claims
                             <button onclick="showExpenseModal()" class="btn-glass-primary btn-sm float-end"><i class="fas fa-plus"></i> New</button>
+                        </div>
+                        <!-- EXPENSE REPORT BUTTONS -->
+                        <div class="p-3 expense-report-buttons">
+                            <button class="btn-glass-primary btn-sm" onclick="generateExpenseReport('daily')">
+                                <i class="fas fa-calendar-day"></i> Daily Report
+                            </button>
+                            <button class="btn-glass-primary btn-sm" onclick="generateExpenseReport('weekly')">
+                                <i class="fas fa-calendar-week"></i> Weekly Report
+                            </button>
+                            <button class="btn-glass-primary btn-sm" onclick="generateExpenseReport('monthly')">
+                                <i class="fas fa-calendar-alt"></i> Monthly Report
+                            </button>
+                            <button class="btn-glass-primary btn-sm" onclick="showExpenseSummary()">
+                                <i class="fas fa-chart-pie"></i> Summary
+                            </button>
                         </div>
                         <div id="expensesList"></div>
                     </div>
@@ -675,6 +709,9 @@
         window.login = function() { console.log('login'); };
         window.setupPassword = function() { console.log('setupPassword'); };
         window.loadTasks = function() { console.log('loadTasks'); };
+        // New expense report functions - stubs
+        window.generateExpenseReport = function(type) { console.log('generateExpenseReport:', type); };
+        window.showExpenseSummary = function() { console.log('showExpenseSummary'); };
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
